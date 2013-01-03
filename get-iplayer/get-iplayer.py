@@ -28,9 +28,50 @@ class GetIplayerPlugin (totem.Plugin):
 		totem_object.remove_sidebar_page ("get-iplayer")
 
 	def _populate_types(self, progs_store):
+		populate = load_branch(progs_store, None)
 		def got_types(types):
-			for t in types:
-				print t
-				progs_store.append(None, [t])
+			populate([[t, False, False] for t in types])
 		self.gip.get_types().on_complete(got_types)
+
+def is_branch_loaded(treestore, branch_iter):
+	if branch_iter is None:
+		return treestore.iter_n_children(branch_iter) > 0
+	else:
+		return treestore.get_value(branch_iter, 2)
+	
+
+def is_branch_loading(treestore, branch_iter):
+	if treestore.iter_n_children(branch_iter) != 1:
+		return False
+	return treestore.get_value(treestore.iter_children(branch_iter), 1)
+
+def load_branch(treestore, branch_iter, force=False):
+	'''Start loading a branch, return either a function to call on load completion or None if it is already loading.'''
+	if not force and (is_branch_loaded(treestore, branch_iter) or is_branch_loading(treestore, branch_iter)):
+		return None
+
+	child = treestore.iter_children(branch_iter)
+	while child:
+		treestore.remove(child)
+		child = treestore.iter_children(branch_iter)
+	treestore.append(branch_iter, ["Loading...", True, False])
+
+	def populate(children):
+		if not is_branch_loading(treestore, branch_iter):
+			# Should only populate if a load is supposed to be in progress currently
+			# Force means we can populate when a load is complete
+			allowed_by_force = force and is_branch_loaded(treestore, branch_iter)
+			if not allowed_by_force:
+				return
+		if branch_iter is not None:
+			treestore.set_value(branch_iter, 2, True)
+
+		# Remove ALL children (in case we used force)
+		child = treestore.iter_children(branch_iter)
+		while child:
+			treestore.remove(child)
+			child = treestore.iter_children(branch_iter)
+		for c in children:
+			treestore.append(branch_iter, c)
+	return populate
 
