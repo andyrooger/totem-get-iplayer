@@ -1,0 +1,10 @@
+[Totem Plugin]
+Loader=python
+Module=get-iplayer
+IAge=1
+Name=Get iPlayer
+Name[en_GB]=Get iPlayer
+Description=Stream BBC programs from the last 7 days from the BBC iPlayer service.
+Description[en_GB]=Stream BBC programs from the last seven days from the BBC iPlayer service.
+Authors=Andy Gurden
+Copyright=Copyright © 2013 Andy Gurden

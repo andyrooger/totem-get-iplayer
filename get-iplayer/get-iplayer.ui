@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!--*- mode: xml -*-->
+<interface>
+<object class="GtkTreeStore" id="getiplayer_progs_store">
+	<columns>
+		<column type="gchararray"/><!--Title-->
+	</columns>
+</object>
+
+<object class="GtkVBox" id="getiplayer_pane">
+	<property name="border-width">5</property>
+	<property name="homogeneous">False</property>
+	<property name="spacing">6</property>
+	<child>
+		<object class="GtkScrolledWindow" id="getiplayer_progs_scroll">
+			<property name="hscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+			<property name="vscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+			<property name="shadow-type">GTK_SHADOW_IN</property>
+			<child>
+				<object class="GtkTreeView" id="getiplayer_progs_list">
+					<property name="model">getiplayer_progs_store</property>
+					<property name="expander-column">getiplayer_title_column</property>
+					<property name="headers-visible">False</property>
+					<child>
+						<object class="GtkTreeViewColumn" id="getiplayer_title_column">
+							<child>
+								<object class="GtkCellRendererText" id="getiplayer_title_cell_renderer"/>
+								<attributes>
+									<attribute name="text">0</attribute>
+								</attributes>
+							</child>
+						</object>
+					</child>
+				</object>
+			</child>
+		</object>
+		<packing>
+			<property name="expand">True</property>
+		</packing>
+	</child>
+</object>
+</interface>
