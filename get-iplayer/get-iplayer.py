@@ -61,7 +61,7 @@ class GetIplayerPlugin (totem.Plugin):
 		if populate is None:
 			return
 		def got_filters(filters):
-			populate([([f, False, False], True) for f in filters])
+			populate([([f, False, False], []) for f in filters])
 		populating = self.filter_order[populate_depth]
 		active_filters = self._active_filters(progs_store, branch)
 		self.gip.get_filters_and_blanks(populating, **active_filters).on_complete(got_filters)
@@ -71,7 +71,10 @@ class GetIplayerPlugin (totem.Plugin):
 		if populate is None:
 			return
 		def got_episodes(series):
-			populate([([s, False, False], True) for s in series])
+			populate([
+				([s, False, False], [([ep[1], False, False], None) for ep in eps])
+				for s, eps in series.iteritems()
+			])
 		active_filters = self._active_filters(progs_list.get_model(), branch)
 		self.gip.get_episodes(**active_filters).on_complete(got_episodes)
 
@@ -110,6 +113,11 @@ def load_branch(tree, branch_iter, force=False):
 	gobject.idle_add(start_load)
 
 	def populate(children):
+		'''
+		Takes a list of children to add. Each child is a tuple of (tree values for child, subchildren).
+		Sub children are childrens children. These should be None if the node should not be expandable, or [..] if it should be.
+		Subchildren  has the same format of children if it exists.
+		'''
 		branch_iter = None if branch_path is None else treestore.get_iter(branch_path)
 		expansion_state = None if branch_path is None else tree.row_expanded(branch_path)
 
@@ -127,10 +135,14 @@ def load_branch(tree, branch_iter, force=False):
 		while child:
 			treestore.remove(child)
 			child = treestore.iter_children(branch_iter)
-		for c, expandable in children:
-			c_iter = treestore.append(branch_iter, c)
-			if expandable:
-				treestore.append(c_iter, ["Nothing", False, False])
+		def add_children(child_list, branch):
+			for c, subc in child_list:
+				c_iter = treestore.append(branch, c)
+				if subc == []:
+					treestore.append(c_iter, ["Nothing", False, False])
+				elif subc is not None:
+					add_children(subc, c_iter)
+		add_children(children, branch_iter)
 
 		if expansion_state is not None:
 			if expansion_state: tree.expand_row(branch_path, False)
