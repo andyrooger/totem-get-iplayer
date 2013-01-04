@@ -8,6 +8,7 @@ import threading
 import subprocess
 
 RE_LISTING_ENTRY = re.compile(r"^(.*) \((\d*)\)$", re.MULTILINE)
+RE_MATCH_TOTAL = re.compile(r"^INFO: (\d.*) Matching Programmes$", re.MULTILINE)
 
 def parse_listings(input, withcounts=False):
 	listings = RE_LISTING_ENTRY.finditer(input)
@@ -19,6 +20,12 @@ def parse_listings(input, withcounts=False):
 			yield (name, count)
 		else:
 			yield name
+
+def parse_match_count(input):
+	count = RE_MATCH_TOTAL.search(input)
+	if count is None:
+		raise ValueError("Unexpected format from get_iplayer output")
+	return int(count.groups()[0])
 
 class PendingResult(object):
 	def __init__(self, hasresult, getresult):
@@ -76,14 +83,27 @@ class GetIPlayer(object):
 			
 		return PendingResult(lambda: proc.poll() is not None, get_result)
 
-	def get_types(self):
-		types = self._call(list="type", type="all")
-		return types.translate(lambda ts: parse_listings(ts))
+	def get_filters_and_blanks(self, filter_type, type="all", channel=".*", category=".*"):
+		normal_filters = self.get_filters(filter_type, type, channel, category)
+		missing_filters = self.count_missing_attrib(filter_type, type, channel, category)
+		def complete_filters():
+			filters = normal_filters.get_result()
+			if missing_filters.get_result() > 0:
+				filters.insert(0, "")
+			return filters
+		return PendingResult(lambda: normal_filters.has_result() and missing_filters.has_result(), complete_filters)
 
-	def get_channels(self, type="all"):
-		channels = self._call(list="channel", type=type)
-		return channels.translate(lambda cs: parse_listings(cs))
+	def get_filters(self, filter_type, type="all", channel=".*", category=".*"):
+		if filter_type == "category":
+			filter_type = "categories"
+		filters = self._call(list=filter_type, type=type, channel=channel, category=category)
+		return filters.translate(lambda fs: list(parse_listings(fs)))
 
-	def get_categories(self, type="all", channel=".*"):
-		categories = self._call(list="categories", channel=channel, type=type)
-		return categories.translate(lambda cs: parse_listings(cs))
+	def count_missing_attrib(self, blankattrib, type="all", channel=".*", category=".*"):
+		'''Counts the number of programmes with the given attribute blank, but that fit the other filters.'''
+		if blankattrib == "type":
+			return PendingResult(lambda: True, lambda: 0) # Don't have an option to exclude these, but I don't think you can have blank types
+		exclude = {}
+		exclude["exclude-"+blankattrib] = ".+"
+		blank = self._call(type=type, channel=channel, category=category, **exclude)
+		return blank.translate(lambda bs: parse_match_count(bs))
