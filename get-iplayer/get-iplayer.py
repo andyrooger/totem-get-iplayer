@@ -144,9 +144,9 @@ class GetIplayerPlugin (totem.Plugin):
 		def got_info(info):
 			if self.showing_info != index:
 				return
-			self._ui_series.set_text(info["name"])
-			self._ui_episode.set_text(info["episode"])
-			self._ui_desc.set_text(info["desc"])
+			self._ui_series.set_text(info.get("name", "Unknown name"))
+			self._ui_episode.set_text(info.get("episode", ""))
+			self._ui_desc.set_text(info.get("desc", "No description"))
 
 			# Need to load image on another thread
 			load_image_in_background(self._ui_thumb, info["thumbnail"],
