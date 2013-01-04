@@ -7,9 +7,10 @@ import re
 import threading
 import subprocess
 
-RE_LISTING_ENTRY = re.compile(r"^(.+) \((\d+)\)$", re.MULTILINE)
+RE_LISTING_ENTRY = re.compile(r"^(.+) \((\d+?)\)$", re.MULTILINE)
 RE_MATCH_TOTAL = re.compile(r"^INFO: (\d+) Matching Programmes$", re.MULTILINE)
-RE_TREE_EPISODE = re.compile(r"^  (\d+): \((\d*)\) (.*)$")
+RE_TREE_EPISODE = re.compile(r"^  (\d+?): \((\d*?)\) (.*)$")
+RE_INFO_LINE = re.compile(r"^(.+?):\s+(.+)$", re.MULTILINE)
 
 def parse_listings(input, withcounts=False):
 	listings = RE_LISTING_ENTRY.finditer(input)
@@ -45,6 +46,15 @@ def parse_episodes(input):
 	for series_name, series_episodes in episodes.iteritems():
 		sorted_eps[series_name] = [(i, name) for i, n, name in sorted(series_episodes, key=lambda ep: ep[1])]
 	return sorted_eps
+
+def parse_info(input):
+	relevant = input.split("\n\n")[-2]
+	discovered_info = RE_INFO_LINE.finditer(relevant)
+	info = {}
+	for i in discovered_info:
+		name, value = i.groups()
+		info[name] = value
+	return info
 
 class PendingResult(object):
 	def __init__(self, hasresult, getresult):
@@ -90,7 +100,7 @@ class GetIPlayer(object):
 
 	def _call(self, *vargs, **kwargs):
 		args = [self.location]
-		args.extend(vargs)
+		args.extend(str(v) for v in vargs)
 		for k, v in kwargs.iteritems():
 			arg = "-" + k if len(k) is 1 else "--" + k
 			if v:
@@ -132,3 +142,7 @@ class GetIPlayer(object):
 	def get_episodes(self, type="all", channel=".*", category=".*"):
 		episodes = self._call(type=type, channel=channel, category=category, tree="", listformat="<index>: (<episodenum>) <episode>")
 		return episodes.translate(lambda es: parse_episodes(es))
+
+	def get_programme_info(self, index):
+		info = self._call(index, info="")
+		return info.translate(lambda i: parse_info(i))
