@@ -69,8 +69,19 @@
 				</object>
 			</child>
 			<child>
-				<object class="GtkLabel" id="getiplayer_desc_text">
-					<property name="wrap">True</property>
+				<object class="GtkScrolledWindow" id="getiplayer_desc_scroll">
+					<property name="hscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+					<property name="vscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+					<property name="shadow-type">GTK_SHADOW_IN</property>
+					<child>
+						<object class="GtkViewport" id="getiplayer_desc_view">
+							<child>
+								<object class="GtkLabel" id="getiplayer_desc_text">
+									<property name="wrap">True</property>
+								</object>
+							</child>
+						</object>
+					</child>
 				</object>
 			</child>
 		</object>
