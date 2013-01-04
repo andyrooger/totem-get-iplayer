@@ -25,7 +25,7 @@ class GetIplayerPlugin (totem.Plugin):
 		# Add the interface to Totem's sidebar
 		self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), container)
 
-		self._populate_types(progs_store)
+		self._populate_types(progs_list)
 
 	def deactivate (self, totem_object):
 		totem_object.remove_sidebar_page ("get-iplayer")
@@ -33,17 +33,17 @@ class GetIplayerPlugin (totem.Plugin):
 	def _row_expanded_cb(self, tree, iter, path):
 		depth = tree.get_model().iter_depth(iter)
 		if depth == 0:
-			self._populate_channels(tree.get_model(), iter)
+			self._populate_channels(tree, iter)
 
-	def _populate_types(self, progs_store):
-		populate = load_branch(progs_store, None)
+	def _populate_types(self, progs_list):
+		populate = load_branch(progs_list, None)
 		def got_types(types):
 			populate([([t, False, False], True) for t in types])
 		self.gip.get_types().on_complete(got_types)
 
-	def _populate_channels(self, progs_store, branch):
-		type_name = progs_store.get_value(branch, 0)
-		populate = load_branch(progs_store, branch)
+	def _populate_channels(self, progs_list, branch):
+		type_name = progs_list.get_model().get_value(branch, 0)
+		populate = load_branch(progs_list, branch)
 		if populate is None:
 			return # Already loading
 		def got_channels(channels):
@@ -62,8 +62,9 @@ def is_branch_loading(treestore, branch_iter):
 		return False
 	return treestore.get_value(treestore.iter_children(branch_iter), 1)
 
-def load_branch(treestore, branch_iter, force=False):
+def load_branch(tree, branch_iter, force=False):
 	'''Start loading a branch, return either a function to call on load completion or None if it is already loading.'''
+	treestore = tree.get_model()
 	if not force and (is_branch_loaded(treestore, branch_iter) or is_branch_loading(treestore, branch_iter)):
 		return None
 
@@ -71,15 +72,22 @@ def load_branch(treestore, branch_iter, force=False):
 
 	def start_load():
 		branch_iter = None if branch_path is None else treestore.get_iter(branch_path)
+		expansion_state = None if branch_path is None else tree.row_expanded(branch_path)
+
 		child = treestore.iter_children(branch_iter)
 		while child:
 			treestore.remove(child)
 			child = treestore.iter_children(branch_iter)
 		treestore.append(branch_iter, ["Loading...", True, False])
+		if expansion_state is not None:
+			if expansion_state: tree.expand_row(branch_path, False)
+			else: tree.collapse_row(branch_path)
 	gobject.idle_add(start_load)
 
 	def populate(children):
 		branch_iter = None if branch_path is None else treestore.get_iter(branch_path)
+		expansion_state = None if branch_path is None else tree.row_expanded(branch_path)
+
 		if not is_branch_loading(treestore, branch_iter):
 			# Should only populate if a load is supposed to be in progress currently
 			# Force means we can populate when a load is complete
@@ -98,6 +106,10 @@ def load_branch(treestore, branch_iter, force=False):
 			c_iter = treestore.append(branch_iter, c)
 			if expandable:
 				treestore.append(c_iter, ["Nothing", False, False])
+
+		if expansion_state is not None:
+			if expansion_state: tree.expand_row(branch_path, False)
+			else: tree.collapse_row(branch_path)
 		return False
 	return lambda children: gobject.idle_add(populate, children)
 
