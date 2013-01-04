@@ -42,7 +42,14 @@
 			<property name="homogeneous">False</property>
 			<property name="spacing">6</property>
 			<child>
-				<object class="GtkLabel" id="getiplayer_title_text" />
+				<object class="GtkLabel" id="getiplayer_series_text">
+					<property name="wrap">True</property>
+				</object>
+			</child>
+			<child>
+				<object class="GtkLabel" id="getiplayer_episode_text">
+					<property name="wrap">True</property>
+				</object>
 			</child>
 			<child>
 				<object class="GtkHBox" id="getiplayer_subdesc_pane">
@@ -50,7 +57,9 @@
 					<property name="homogeneous">False</property>
 					<property name="spacing">6</property>
 					<child>
-						<object class="GtkLabel" id="getiplayer_desc_text" />
+						<object class="GtkLabel" id="getiplayer_desc_text">
+							<property name="wrap">True</property>
+						</object>
 					</child>
 					<child>
 						<object class="GtkImage" id="getiplayer_thumbnail" />

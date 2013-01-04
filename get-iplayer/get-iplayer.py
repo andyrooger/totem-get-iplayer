@@ -47,7 +47,8 @@ class GetIplayerPlugin (totem.Plugin):
 		progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
 
 		self._ui_programme_info = builder.get_object("getiplayer_description_pane")
-		self._ui_title = builder.get_object("getiplayer_title_text")
+		self._ui_series = builder.get_object("getiplayer_series_text")
+		self._ui_episode = builder.get_object("getiplayer_episode_text")
 		self._ui_desc = builder.get_object("getiplayer_desc_text")
 		self._ui_thumb = builder.get_object("getiplayer_thumbnail")
 
@@ -75,7 +76,7 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def _row_selection_changed_cb(self, selection):
 		treestore, branch = selection.get_selected()
-		index = treestore.get_value(branch, IDX_PROGRAMME_INDEX)
+		index = None if branch is None else treestore.get_value(branch, IDX_PROGRAMME_INDEX)
 		self._load_info(None if index == -1 else index)
 
 	def _filter_at_branch(self, progs_store, branch):
@@ -118,9 +119,32 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def _load_info(self, index):
 		self.showing_info = index
-		self._ui_programme_info.hide_all()
-		if index is not None:
+
+		# First show a loading page
+		def prepare_loading():
+			if self.showing_info != index:
+				return
+			self._ui_programme_info.hide_all()
+			if index is None:
+				return
+			self._ui_series.set_text("Loading programme %s..." % index)
+			self._ui_episode.set_text("")
+			self._ui_desc.set_text("")
+			#self._ui_thumb.set_file("")
 			self._ui_programme_info.show_all()
+		gobject.idle_add(prepare_loading)
+
+		if index is None:
+			return
+
+		# Then load up the info and populate it when done (if the index has not changed)
+		def got_info(info):
+			if self.showing_info != index:
+				return
+			self._ui_series.set_text(info["name"])
+			self._ui_episode.set_text(info["episode"])
+			self._ui_desc.set_text(info["desc"])
+		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info))
 
 def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:
