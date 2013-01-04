@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import totem
+import gobject
 from getiplayer_interface import GetIPlayer
 
 class GetIplayerPlugin (totem.Plugin):
@@ -50,11 +51,13 @@ def load_branch(treestore, branch_iter, force=False):
 	if not force and (is_branch_loaded(treestore, branch_iter) or is_branch_loading(treestore, branch_iter)):
 		return None
 
-	child = treestore.iter_children(branch_iter)
-	while child:
-		treestore.remove(child)
+	def start_load():
 		child = treestore.iter_children(branch_iter)
-	treestore.append(branch_iter, ["Loading...", True, False])
+		while child:
+			treestore.remove(child)
+			child = treestore.iter_children(branch_iter)
+		treestore.append(branch_iter, ["Loading...", True, False])
+	gobject.idle_add(start_load)
 
 	def populate(children):
 		if not is_branch_loading(treestore, branch_iter):
@@ -73,5 +76,6 @@ def load_branch(treestore, branch_iter, force=False):
 			child = treestore.iter_children(branch_iter)
 		for c in children:
 			treestore.append(branch_iter, c)
-	return populate
+		return False
+	return lambda children: gobject.idle_add(populate, children)
 
