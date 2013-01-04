@@ -4,6 +4,11 @@ import totem
 import gobject
 from getiplayer_interface import GetIPlayer
 
+IDX_TITLE = 0
+IDX_LOADING_NODE = 1
+IDX_HAS_LOADED = 2
+IDX_PROGRAMME_INDEX = 3
+
 class GetIplayerPlugin (totem.Plugin):
 	def __init__ (self):
 		totem.Plugin.__init__ (self)
@@ -43,7 +48,7 @@ class GetIplayerPlugin (totem.Plugin):
 	def _filter_at_branch(self, progs_store, branch):
 		node_names = []
 		while branch is not None:
-			node_names.append(progs_store.get_value(branch, 0))
+			node_names.append(progs_store.get_value(branch, IDX_TITLE))
 			branch = progs_store.iter_parent(branch)
 		return tuple(reversed(node_names))
 
@@ -61,7 +66,7 @@ class GetIplayerPlugin (totem.Plugin):
 		if populate is None:
 			return
 		def got_filters(filters):
-			populate([([f, False, False], []) for f in filters])
+			populate([([f, False, False, -1], []) for f in filters])
 		populating = self.filter_order[populate_depth]
 		active_filters = self._active_filters(progs_store, branch)
 		self.gip.get_filters_and_blanks(populating, **active_filters).on_complete(got_filters)
@@ -72,7 +77,7 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		def got_episodes(series):
 			populate([
-				([s, False, False], [([ep[1], False, False], None) for ep in eps])
+				([s, False, False, -1], [([ep[1], False, False, ep[0]], None) for ep in eps])
 				for s, eps in series.iteritems()
 			])
 		active_filters = self._active_filters(progs_list.get_model(), branch)
@@ -82,13 +87,13 @@ def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:
 		return treestore.iter_n_children(branch_iter) > 0
 	else:
-		return treestore.get_value(branch_iter, 2)
+		return treestore.get_value(branch_iter, IDX_HAS_LOADED)
 	
 
 def is_branch_loading(treestore, branch_iter):
 	if treestore.iter_n_children(branch_iter) != 1:
 		return False
-	return treestore.get_value(treestore.iter_children(branch_iter), 1)
+	return treestore.get_value(treestore.iter_children(branch_iter), IDX_LOADING_NODE)
 
 def load_branch(tree, branch_iter, force=False):
 	'''Start loading a branch, return either a function to call on load completion or None if it is already loading.'''
@@ -106,7 +111,7 @@ def load_branch(tree, branch_iter, force=False):
 		while child:
 			treestore.remove(child)
 			child = treestore.iter_children(branch_iter)
-		treestore.append(branch_iter, ["Loading...", True, False])
+		treestore.append(branch_iter, ["Loading...", True, False, -1])
 		if expansion_state is not None:
 			if expansion_state: tree.expand_row(branch_path, False)
 			else: tree.collapse_row(branch_path)
@@ -128,7 +133,7 @@ def load_branch(tree, branch_iter, force=False):
 			if not allowed_by_force:
 				return
 		if branch_iter is not None:
-			treestore.set_value(branch_iter, 2, True)
+			treestore.set_value(branch_iter, IDX_HAS_LOADED, True)
 
 		# Remove ALL children (in case we used force)
 		child = treestore.iter_children(branch_iter)
@@ -139,7 +144,7 @@ def load_branch(tree, branch_iter, force=False):
 			for c, subc in child_list:
 				c_iter = treestore.append(branch, c)
 				if subc == []:
-					treestore.append(c_iter, ["Nothing", False, False])
+					treestore.append(c_iter, ["Nothing", False, False, -1])
 				elif subc is not None:
 					add_children(subc, c_iter)
 		add_children(children, branch_iter)

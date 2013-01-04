@@ -6,6 +6,7 @@
 		<column type="gchararray"/><!--Title-->
 		<column type="gboolean"/><!--Is this a loading node-->
 		<column type="gboolean"/><!--Has this been fully loaded before (in case it loads empty)-->
+		<column type="gint"/><!--Programme Index -->
 	</columns>
 </object>
 

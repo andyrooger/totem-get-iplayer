@@ -38,11 +38,12 @@ def parse_episodes(input):
 			continue
 		series_list = episodes.get(series, [])
 		episodes[series] = series_list # In case we got list through default
-		series_list.append(match.groups())
+		idx, num, name = match.groups()
+		series_list.append((int(idx), int(num) if num else 0, name))
 	# Need to sort by episode number and then drop number from data
 	sorted_eps = {}
 	for series_name, series_episodes in episodes.iteritems():
-		sorted_eps[series_name] = [(i, name) for i, n, name in sorted(series_episodes, key=lambda ep: int(ep[1]) if ep[1] else 0)]
+		sorted_eps[series_name] = [(i, name) for i, n, name in sorted(series_episodes, key=lambda ep: ep[1])]
 	return sorted_eps
 
 class PendingResult(object):
