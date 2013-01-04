@@ -8,6 +8,7 @@ class GetIplayerPlugin (totem.Plugin):
 	def __init__ (self):
 		totem.Plugin.__init__ (self)
 		self.totem = None
+		self.filter_order = ["type", "channel", "category"]
 
 	def activate (self, totem_object):
 		# Build the interface
@@ -25,44 +26,39 @@ class GetIplayerPlugin (totem.Plugin):
 		# Add the interface to Totem's sidebar
 		self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), container)
 
-		self._populate_types(progs_list)
+		self._populate_filter_level(progs_list, None)
 
 	def deactivate (self, totem_object):
 		totem_object.remove_sidebar_page ("get-iplayer")
 
 	def _row_expanded_cb(self, tree, iter, path):
-		depth = tree.get_model().iter_depth(iter)
-		if depth == 0:
-			self._populate_channels(tree, iter)
-		elif depth == 1:
-			self._populate_categories(tree, iter)
+		try:
+			self._populate_filter_level(tree, iter)
+		except ValueError:
+			pass # this is not a filtered level of the tree
 
-	def _populate_types(self, progs_list):
-		populate = load_branch(progs_list, None)
-		def got_types(types):
-			populate([([t, False, False], True) for t in types])
-		self.gip.get_filters_and_blanks("type").on_complete(got_types)
+	def _filter_at_branch(self, progs_store, branch):
+		node_names = []
+		while branch is not None:
+			node_names.append(progs_store.get_value(branch, 0))
+			branch = progs_store.iter_parent(branch)
+		return tuple(reversed(node_names))
 
-	def _populate_channels(self, progs_list, branch):
-		type_name = progs_list.get_model().get_value(branch, 0)
-		populate = load_branch(progs_list, branch)
-		if populate is None:
-			return # Already loading
-		def got_channels(channels):
-			populate([([c, False, False], True) for c in channels])
-		self.gip.get_filters_and_blanks("channel", type=type_name).on_complete(got_channels)
-
-	def _populate_categories(self, progs_list, branch):
+	def _populate_filter_level(self, progs_list, branch):
 		progs_store = progs_list.get_model()
-		channel_name = progs_store.get_value(branch, 0)
-		type_name = progs_store.get_value(progs_store.iter_parent(branch), 0)
-
+		populate_depth = 0 if branch is None else progs_store.iter_depth(branch)+1
+		if populate_depth >= len(self.filter_order):
+			raise ValueError("This level does not contain filters.")
+		
 		populate = load_branch(progs_list, branch)
 		if populate is None:
-			return # Already loading
-		def got_categories(cats):
-			populate([([c, False, False], False) for c in cats])
-		self.gip.get_filters_and_blanks("category", type=type_name, channel=channel_name).on_complete(got_categories)
+			return
+		def got_filters(filters):
+			populate([([f, False, False], True) for f in filters])
+		populating = self.filter_order[populate_depth]
+		path = self._filter_at_branch(progs_store, branch)
+		active_filters = dict(zip(self.filter_order, path))
+		self.gip.get_filters_and_blanks(populating, **active_filters).on_complete(got_filters)
 
 def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:
