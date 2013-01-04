@@ -16,6 +16,8 @@ class GetIplayerPlugin (totem.Plugin):
 
 		self.gip = GetIPlayer("/home/andyrooger/git/get_iplayer/get_iplayer")
 		progs_store = builder.get_object("getiplayer_progs_store")
+		progs_list = builder.get_object("getiplayer_progs_list")
+		progs_list.connect("row-expanded", self._row_expanded_cb)
 
 		self.totem = totem_object
 		container.show_all ()
@@ -28,11 +30,25 @@ class GetIplayerPlugin (totem.Plugin):
 	def deactivate (self, totem_object):
 		totem_object.remove_sidebar_page ("get-iplayer")
 
+	def _row_expanded_cb(self, tree, iter, path):
+		depth = tree.get_model().iter_depth(iter)
+		if depth == 0:
+			self._populate_channels(tree.get_model(), iter)
+
 	def _populate_types(self, progs_store):
 		populate = load_branch(progs_store, None)
 		def got_types(types):
 			populate([([t, False, False], True) for t in types])
 		self.gip.get_types().on_complete(got_types)
+
+	def _populate_channels(self, progs_store, branch):
+		type_name = progs_store.get_value(branch, 0)
+		populate = load_branch(progs_store, branch)
+		if populate is None:
+			return # Already loading
+		def got_channels(channels):
+			populate([([c, False, False], False) for c in channels])
+		self.gip.get_channels(type=type_name).on_complete(got_channels)
 
 def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:
