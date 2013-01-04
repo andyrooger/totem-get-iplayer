@@ -9,6 +9,25 @@ IDX_LOADING_NODE = 1
 IDX_HAS_LOADED = 2
 IDX_PROGRAMME_INDEX = 3
 
+class TreeValues(object):
+	def __init__(self, title, loading_node=False, loaded=False, prog_idx=-1):
+		self.title = title
+		self.loading_node = loading_node
+		self.loaded = loaded
+		self.prog_idx = -1
+
+	def __internal(self):
+		return (self.title, self.loading_node, self.loaded, self.prog_idx)
+
+	def __iter__(self):
+		return iter(self.__internal())
+
+	def __len__(self):
+		return 4
+
+	def __getitem__(self, key):
+		return self.__internal()[key]
+
 class GetIplayerPlugin (totem.Plugin):
 	def __init__ (self):
 		totem.Plugin.__init__ (self)
@@ -66,7 +85,7 @@ class GetIplayerPlugin (totem.Plugin):
 		if populate is None:
 			return
 		def got_filters(filters):
-			populate([([f, False, False, -1], []) for f in filters])
+			populate([(TreeValues(f), []) for f in filters])
 		populating = self.filter_order[populate_depth]
 		active_filters = self._active_filters(progs_store, branch)
 		self.gip.get_filters_and_blanks(populating, **active_filters).on_complete(got_filters)
@@ -77,7 +96,7 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		def got_episodes(series):
 			populate([
-				([s, False, False, -1], [([ep[1], False, False, ep[0]], None) for ep in eps])
+				(TreeValues(s), [(TreeValues(ep[1], prog_idx=ep[0]), None) for ep in eps])
 				for s, eps in series.iteritems()
 			])
 		active_filters = self._active_filters(progs_list.get_model(), branch)
@@ -111,7 +130,7 @@ def load_branch(tree, branch_iter, force=False):
 		while child:
 			treestore.remove(child)
 			child = treestore.iter_children(branch_iter)
-		treestore.append(branch_iter, ["Loading...", True, False, -1])
+		treestore.append(branch_iter, TreeValues("Loading...", loading_node=True))
 		if expansion_state is not None:
 			if expansion_state: tree.expand_row(branch_path, False)
 			else: tree.collapse_row(branch_path)
@@ -144,7 +163,7 @@ def load_branch(tree, branch_iter, force=False):
 			for c, subc in child_list:
 				c_iter = treestore.append(branch, c)
 				if subc == []:
-					treestore.append(c_iter, ["Nothing", False, False, -1])
+					treestore.append(c_iter, TreeValues("Nothing"))
 				elif subc is not None:
 					add_children(subc, c_iter)
 		add_children(children, branch_iter)
