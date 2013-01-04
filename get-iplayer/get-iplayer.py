@@ -149,7 +149,9 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_desc.set_text(info["desc"])
 
 			# Need to load image on another thread
-			load_image_in_background(self._ui_thumb, info["thumbnail"], lambda: self.showing_info != index)
+			load_image_in_background(self._ui_thumb, info["thumbnail"],
+				cancelcheck=lambda: self.showing_info != index,
+				transform=lambda pb: ensure_image_small(pb, 200, 200))
 		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info))
 
 def is_branch_loaded(treestore, branch_iter):
@@ -224,7 +226,7 @@ def load_branch(tree, branch_iter, force=False):
 		return False
 	return lambda children: gobject.idle_add(populate, children)
 
-def load_image_in_background(image, imageurl, cancelcheck=None):
+def load_image_in_background(image, imageurl, cancelcheck=None, transform=None):
 	def on_complete(pb):
 		if cancelcheck is None or cancelcheck():
 			return
@@ -240,5 +242,26 @@ def load_image_in_background(image, imageurl, cancelcheck=None):
 			pb = loader.get_pixbuf()
 		except:
 			pass
+		if transform is not None:
+			pb = transform(pb)
 		gobject.idle_add(on_complete, pb)
 	threading.Thread(target=load_image).start()
+
+def ensure_image_small(pb, max_width, max_height):
+	width = pb.get_width()
+	height = pb.get_height()
+	resize = False
+	if width > max_width:
+		resize = True
+		height *= float(max_width)/float(width)
+		height = int(height)
+		width = max_width
+	if height > max_height:
+		resize = True
+		width *= float(max_height)/float(height)
+		width = int(width)
+		height = max_height
+	if resize:
+		return pb.scale_simple(width, height, gtk.gdk.INTERP_BILINEAR)
+	else:
+		return pb
