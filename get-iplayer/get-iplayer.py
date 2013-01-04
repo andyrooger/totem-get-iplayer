@@ -51,7 +51,10 @@ def load_branch(treestore, branch_iter, force=False):
 	if not force and (is_branch_loaded(treestore, branch_iter) or is_branch_loading(treestore, branch_iter)):
 		return None
 
+	branch_path = None if branch_iter is None else treestore.get_path(branch_iter)
+
 	def start_load():
+		branch_iter = None if branch_path is None else treestore.get_iter(branch_path)
 		child = treestore.iter_children(branch_iter)
 		while child:
 			treestore.remove(child)
@@ -60,6 +63,7 @@ def load_branch(treestore, branch_iter, force=False):
 	gobject.idle_add(start_load)
 
 	def populate(children):
+		branch_iter = None if branch_path is None else treestore.get_iter(branch_path)
 		if not is_branch_loading(treestore, branch_iter):
 			# Should only populate if a load is supposed to be in progress currently
 			# Force means we can populate when a load is complete
