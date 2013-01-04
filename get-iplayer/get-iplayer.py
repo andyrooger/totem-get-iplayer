@@ -34,6 +34,8 @@ class GetIplayerPlugin (totem.Plugin):
 		depth = tree.get_model().iter_depth(iter)
 		if depth == 0:
 			self._populate_channels(tree, iter)
+		elif depth == 1:
+			self._populate_categories(tree, iter)
 
 	def _populate_types(self, progs_list):
 		populate = load_branch(progs_list, None)
@@ -47,8 +49,20 @@ class GetIplayerPlugin (totem.Plugin):
 		if populate is None:
 			return # Already loading
 		def got_channels(channels):
-			populate([([c, False, False], False) for c in channels])
+			populate([([c, False, False], True) for c in channels])
 		self.gip.get_channels(type=type_name).on_complete(got_channels)
+
+	def _populate_categories(self, progs_list, branch):
+		progs_store = progs_list.get_model()
+		channel_name = progs_store.get_value(branch, 0)
+		type_name = progs_store.get_value(progs_store.iter_parent(branch), 0)
+
+		populate = load_branch(progs_list, branch)
+		if populate is None:
+			return # Already loading
+		def got_categories(cats):
+			populate([([c, False, False], False) for c in cats])
+		self.gip.get_categories(type=type_name, channel=channel_name).on_complete(got_categories)
 
 def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:

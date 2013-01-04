@@ -83,3 +83,7 @@ class GetIPlayer(object):
 	def get_channels(self, type="all"):
 		channels = self._call(list="channel", type=type)
 		return channels.translate(lambda cs: parse_listings(cs))
+
+	def get_categories(self, type="all", channel=".*"):
+		categories = self._call(list="categories", channel=channel, type=type)
+		return categories.translate(lambda cs: parse_listings(cs))
