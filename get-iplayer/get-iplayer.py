@@ -14,7 +14,7 @@ class TreeValues(object):
 		self.title = title
 		self.loading_node = loading_node
 		self.loaded = loaded
-		self.prog_idx = -1
+		self.prog_idx = prog_idx
 
 	def __internal(self):
 		return (self.title, self.loading_node, self.loaded, self.prog_idx)
@@ -33,6 +33,7 @@ class GetIplayerPlugin (totem.Plugin):
 		totem.Plugin.__init__ (self)
 		self.totem = None
 		self.filter_order = ["type", "channel", "category"]
+		self.showing_info = None
 
 	def activate (self, totem_object):
 		# Build the interface
@@ -43,9 +44,17 @@ class GetIplayerPlugin (totem.Plugin):
 		progs_store = builder.get_object("getiplayer_progs_store")
 		progs_list = builder.get_object("getiplayer_progs_list")
 		progs_list.connect("row-expanded", self._row_expanded_cb)
+		progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
+
+		self._ui_programme_info = builder.get_object("getiplayer_description_pane")
+		self._ui_title = builder.get_object("getiplayer_title_text")
+		self._ui_desc = builder.get_object("getiplayer_desc_text")
+		self._ui_thumb = builder.get_object("getiplayer_thumbnail")
+
 
 		self.totem = totem_object
 		container.show_all ()
+		self._ui_programme_info.hide_all()
 
 		# Add the interface to Totem's sidebar
 		self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), container)
@@ -63,6 +72,11 @@ class GetIplayerPlugin (totem.Plugin):
 			pass # this is not a filtered level of the tree
 		if tree.get_model().iter_depth(iter) == len(self.filter_order)-1:
 			self._populate_series_and_episodes(tree, iter)
+
+	def _row_selection_changed_cb(self, selection):
+		treestore, branch = selection.get_selected()
+		index = treestore.get_value(branch, IDX_PROGRAMME_INDEX)
+		self._load_info(None if index == -1 else index)
 
 	def _filter_at_branch(self, progs_store, branch):
 		node_names = []
@@ -101,6 +115,12 @@ class GetIplayerPlugin (totem.Plugin):
 			])
 		active_filters = self._active_filters(progs_list.get_model(), branch)
 		self.gip.get_episodes(**active_filters).on_complete(got_episodes)
+
+	def _load_info(self, index):
+		self.showing_info = index
+		self._ui_programme_info.hide_all()
+		if index is not None:
+			self._ui_programme_info.show_all()
 
 def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:

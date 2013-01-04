@@ -10,10 +10,8 @@
 	</columns>
 </object>
 
-<object class="GtkVBox" id="getiplayer_pane">
+<object class="GtkVPaned" id="getiplayer_pane">
 	<property name="border-width">5</property>
-	<property name="homogeneous">False</property>
-	<property name="spacing">6</property>
 	<child>
 		<object class="GtkScrolledWindow" id="getiplayer_progs_scroll">
 			<property name="hscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
@@ -37,9 +35,29 @@
 				</object>
 			</child>
 		</object>
-		<packing>
-			<property name="expand">True</property>
-		</packing>
+	</child>
+	<child>
+		<object class="GtkVBox" id="getiplayer_description_pane">
+			<property name="border-width">5</property>
+			<property name="homogeneous">False</property>
+			<property name="spacing">6</property>
+			<child>
+				<object class="GtkLabel" id="getiplayer_title_text" />
+			</child>
+			<child>
+				<object class="GtkHBox" id="getiplayer_subdesc_pane">
+					<property name="border-width">5</property>
+					<property name="homogeneous">False</property>
+					<property name="spacing">6</property>
+					<child>
+						<object class="GtkLabel" id="getiplayer_desc_text" />
+					</child>
+					<child>
+						<object class="GtkImage" id="getiplayer_thumbnail" />
+					</child>
+				</object>
+			</child>
+		</object>
 	</child>
 </object>
 </interface>
