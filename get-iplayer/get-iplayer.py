@@ -31,7 +31,7 @@ class GetIplayerPlugin (totem.Plugin):
 	def _populate_types(self, progs_store):
 		populate = load_branch(progs_store, None)
 		def got_types(types):
-			populate([[t, False, False] for t in types])
+			populate([([t, False, False], True) for t in types])
 		self.gip.get_types().on_complete(got_types)
 
 def is_branch_loaded(treestore, branch_iter):
@@ -74,8 +74,10 @@ def load_branch(treestore, branch_iter, force=False):
 		while child:
 			treestore.remove(child)
 			child = treestore.iter_children(branch_iter)
-		for c in children:
-			treestore.append(branch_iter, c)
+		for c, expandable in children:
+			c_iter = treestore.append(branch_iter, c)
+			if expandable:
+				treestore.append(c_iter, ["Nothing", False, False])
 		return False
 	return lambda children: gobject.idle_add(populate, children)
 
