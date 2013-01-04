@@ -7,7 +7,18 @@ import re
 import threading
 import subprocess
 
-RE_LISTING_ENTRY = re.compile(r"^.* \(\d*\)$", re.MULTILINE)
+RE_LISTING_ENTRY = re.compile(r"^(.*) \((\d*)\)$", re.MULTILINE)
+
+def parse_listings(input, withcounts=False):
+	listings = RE_LISTING_ENTRY.finditer(input)
+	for match in listings:
+		name, count = match.groups()
+		name = name.strip()
+		count = int(count)
+		if withcounts:
+			yield (name, count)
+		else:
+			yield name
 
 class PendingResult(object):
 	def __init__(self, hasresult, getresult):
@@ -67,8 +78,8 @@ class GetIPlayer(object):
 
 	def get_types(self):
 		types = self._call(list="type", type="all")
-		return types.translate(lambda ts: RE_LISTING_ENTRY.findall(ts))
+		return types.translate(lambda ts: parse_listings(ts))
 
 	def get_channels(self, type="all"):
 		channels = self._call(list="channel", type=type)
-		return channels.translate(lambda cs: RE_LISTING_ENTRY.findall(cs))
+		return channels.translate(lambda cs: parse_listings(cs))
