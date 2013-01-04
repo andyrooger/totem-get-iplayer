@@ -2,6 +2,9 @@
 
 import totem
 import gobject
+import urllib2
+import gtk
+import threading
 from getiplayer_interface import GetIPlayer
 
 IDX_TITLE = 0
@@ -130,7 +133,7 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_series.set_text("Loading programme %s..." % index)
 			self._ui_episode.set_text("")
 			self._ui_desc.set_text("")
-			#self._ui_thumb.set_file("")
+			self._ui_thumb.clear()
 			self._ui_programme_info.show_all()
 		gobject.idle_add(prepare_loading)
 
@@ -144,6 +147,9 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_series.set_text(info["name"])
 			self._ui_episode.set_text(info["episode"])
 			self._ui_desc.set_text(info["desc"])
+
+			# Need to load image on another thread
+			load_image_in_background(self._ui_thumb, info["thumbnail"], lambda: self.showing_info != index)
 		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info))
 
 def is_branch_loaded(treestore, branch_iter):
@@ -218,3 +224,21 @@ def load_branch(tree, branch_iter, force=False):
 		return False
 	return lambda children: gobject.idle_add(populate, children)
 
+def load_image_in_background(image, imageurl, cancelcheck=None):
+	def on_complete(pb):
+		if cancelcheck is None or cancelcheck():
+			return
+		image.set_from_pixbuf(pb)
+
+	def load_image():
+		pb = None
+		try:
+			response = urllib2.urlopen(imageurl)
+			loader = gtk.gdk.PixbufLoader()
+			loader.write(response.read())
+			loader.close()
+			pb = loader.get_pixbuf()
+		except:
+			pass
+		gobject.idle_add(on_complete, pb)
+	threading.Thread(target=load_image).start()
