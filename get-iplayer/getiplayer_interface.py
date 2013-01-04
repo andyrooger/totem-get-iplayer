@@ -114,6 +114,16 @@ class GetIPlayer(object):
 			
 		return PendingResult(lambda: proc.poll() is not None, get_result)
 
+	def _fix_blank_search(self, **kwargs):
+		if "channel" in kwargs and not kwargs["channel"]:
+			kwargs["exclude-channel"] = ".+"
+			kwargs["channel"] = ".*"
+		if "category" in kwargs and not kwargs["category"]:
+			kwargs["exclude-category"] = ".+"
+			kwargs["category"] = ".*"
+		return kwargs
+
+
 	def get_filters_and_blanks(self, filter_type, type="all", channel=".*", category=".*"):
 		normal_filters = self.get_filters(filter_type, type, channel, category)
 		missing_filters = self.count_missing_attrib(filter_type, type, channel, category)
@@ -127,7 +137,8 @@ class GetIPlayer(object):
 	def get_filters(self, filter_type, type="all", channel=".*", category=".*"):
 		if filter_type == "category":
 			filter_type = "categories"
-		filters = self._call(list=filter_type, type=type, channel=channel, category=category)
+		fixed_filtering = self._fix_blank_search(type=type, channel=channel, category=category)
+		filters = self._call(list=filter_type, **fixed_filtering)
 		return filters.translate(lambda fs: list(parse_listings(fs)))
 
 	def count_missing_attrib(self, blankattrib, type="all", channel=".*", category=".*"):
@@ -140,7 +151,8 @@ class GetIPlayer(object):
 		return blank.translate(lambda bs: parse_match_count(bs))
 
 	def get_episodes(self, type="all", channel=".*", category=".*"):
-		episodes = self._call(type=type, channel=channel, category=category, tree="", listformat="<index>: (<episodenum>) <episode>")
+		fixed_filtering = self._fix_blank_search(type=type, channel=channel, category=category)
+		episodes = self._call(tree="", listformat="<index>: (<episodenum>) <episode>", **fixed_filtering)
 		return episodes.translate(lambda es: parse_episodes(es))
 
 	def get_programme_info(self, index):
