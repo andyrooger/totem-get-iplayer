@@ -34,8 +34,11 @@ class GetIplayerPlugin (totem.Plugin):
 	def _row_expanded_cb(self, tree, iter, path):
 		try:
 			self._populate_filter_level(tree, iter)
+			return
 		except ValueError:
 			pass # this is not a filtered level of the tree
+		if tree.get_model().iter_depth(iter) == len(self.filter_order)-1:
+			self._populate_series_and_episodes(tree, iter)
 
 	def _filter_at_branch(self, progs_store, branch):
 		node_names = []
@@ -43,6 +46,10 @@ class GetIplayerPlugin (totem.Plugin):
 			node_names.append(progs_store.get_value(branch, 0))
 			branch = progs_store.iter_parent(branch)
 		return tuple(reversed(node_names))
+
+	def _active_filters(self, progs_store, branch):
+		path = self._filter_at_branch(progs_store, branch)
+		return dict(zip(self.filter_order, path))
 
 	def _populate_filter_level(self, progs_list, branch):
 		progs_store = progs_list.get_model()
@@ -56,9 +63,17 @@ class GetIplayerPlugin (totem.Plugin):
 		def got_filters(filters):
 			populate([([f, False, False], True) for f in filters])
 		populating = self.filter_order[populate_depth]
-		path = self._filter_at_branch(progs_store, branch)
-		active_filters = dict(zip(self.filter_order, path))
+		active_filters = self._active_filters(progs_store, branch)
 		self.gip.get_filters_and_blanks(populating, **active_filters).on_complete(got_filters)
+
+	def _populate_series_and_episodes(self, progs_list, branch):
+		populate = load_branch(progs_list, branch)
+		if populate is None:
+			return
+		def got_episodes(series):
+			populate([([s, False, False], True) for s in series])
+		active_filters = self._active_filters(progs_list.get_model(), branch)
+		self.gip.get_episodes(**active_filters).on_complete(got_episodes)
 
 def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:

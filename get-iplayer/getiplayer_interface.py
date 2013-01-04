@@ -7,8 +7,9 @@ import re
 import threading
 import subprocess
 
-RE_LISTING_ENTRY = re.compile(r"^(.*) \((\d*)\)$", re.MULTILINE)
-RE_MATCH_TOTAL = re.compile(r"^INFO: (\d.*) Matching Programmes$", re.MULTILINE)
+RE_LISTING_ENTRY = re.compile(r"^(.+) \((\d+)\)$", re.MULTILINE)
+RE_MATCH_TOTAL = re.compile(r"^INFO: (\d+) Matching Programmes$", re.MULTILINE)
+RE_TREE_EPISODE = re.compile(r"^  (\d+): \((\d*)\) (.*)$")
 
 def parse_listings(input, withcounts=False):
 	listings = RE_LISTING_ENTRY.finditer(input)
@@ -26,6 +27,23 @@ def parse_match_count(input):
 	if count is None:
 		raise ValueError("Unexpected format from get_iplayer output")
 	return int(count.groups()[0])
+
+def parse_episodes(input):
+	episodes = {} # Series name : list of episode index, number and names
+	series = None
+	for line in input.splitlines():
+		match = RE_TREE_EPISODE.match(line)
+		if not match:
+			series = line
+			continue
+		series_list = episodes.get(series, [])
+		episodes[series] = series_list # In case we got list through default
+		series_list.append(match.groups())
+	# Need to sort by episode number and then drop number from data
+	sorted_eps = {}
+	for series_name, series_episodes in episodes.iteritems():
+		sorted_eps[series_name] = [(i, name) for i, n, name in sorted(series_episodes, key=lambda ep: ep[1])]
+	return sorted_eps
 
 class PendingResult(object):
 	def __init__(self, hasresult, getresult):
@@ -73,8 +91,10 @@ class GetIPlayer(object):
 		args = [self.location]
 		args.extend(vargs)
 		for k, v in kwargs.iteritems():
-			k = "-" + k + " " if len(k) is 1 else "--" + k + "="
-			args.append(k+v)
+			arg = "-" + k if len(k) is 1 else "--" + k
+			if v:
+				arg += (" " if len(k) is 1 else "=") + v
+			args.append(arg)
 		proc = subprocess.Popen(args, stdout=subprocess.PIPE)
 		def get_result():
 			stdout, stderr = proc.communicate()
@@ -107,3 +127,7 @@ class GetIPlayer(object):
 		exclude["exclude-"+blankattrib] = ".+"
 		blank = self._call(type=type, channel=channel, category=category, **exclude)
 		return blank.translate(lambda bs: parse_match_count(bs))
+
+	def get_episodes(self, type="all", channel=".*", category=".*"):
+		episodes = self._call(type=type, channel=channel, category=category, tree="", listformat="<index>: (<episodenum>) <episode>")
+		return episodes.translate(lambda es: parse_episodes(es))
