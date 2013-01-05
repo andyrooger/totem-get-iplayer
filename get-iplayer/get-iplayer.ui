@@ -10,6 +10,18 @@
 	</columns>
 </object>
 
+<object class="GtkListStore" id="getiplayer_version_store">
+	<columns>
+		<column type="gchararray"/><!-- Version name -->
+	</columns>
+</object>
+
+<object class="GtkListStore" id="getiplayer_mode_store">
+	<columns>
+		<column type="gchararray"/><!-- Mode name -->
+	</columns>
+</object>
+
 <object class="GtkVPaned" id="getiplayer_pane">
 	<property name="border-width">5</property>
 	<child>
@@ -106,13 +118,29 @@
 						</packing>
 					</child>
 					<child>
-						<object class="GtkComboBox" id="getiplayer_versions" />
+						<object class="GtkComboBox" id="getiplayer_versions">
+							<property name="model">getiplayer_version_store</property>
+							<child>
+								<object class="GtkCellRendererText" id="getiplayer_versions_text"/>
+								<attributes>
+									<attribute name="text">0</attribute>
+								</attributes>
+							</child>
+						</object>
 						<packing>
 							<property name="top_attach">1</property>
 						</packing>
 					</child>
 					<child>
-						<object class="GtkComboBox" id="getiplayer_modes" />
+						<object class="GtkComboBox" id="getiplayer_modes">
+							<property name="model">getiplayer_mode_store</property>
+							<child>
+								<object class="GtkCellRendererText" id="getiplayer_modes_text"/>
+								<attributes>
+									<attribute name="text">0</attribute>
+								</attributes>
+							</child>
+						</object>
 						<packing>
 							<property name="left_attach">1</property>
 							<property name="top_attach">1</property>
