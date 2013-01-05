@@ -48,14 +48,19 @@ class GetIplayerPlugin (totem.Plugin):
 		progs_list = builder.get_object("getiplayer_progs_list")
 		progs_list.connect("row-expanded", self._row_expanded_cb)
 		progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
-		builder.get_object("getiplayer_record").connect("clicked", self._record_clicked_cb)
 
 		self._ui_programme_info = builder.get_object("getiplayer_description_pane")
 		self._ui_series = builder.get_object("getiplayer_series_text")
 		self._ui_episode = builder.get_object("getiplayer_episode_text")
 		self._ui_desc = builder.get_object("getiplayer_desc_text")
 		self._ui_thumb = builder.get_object("getiplayer_thumbnail")
+		self._ui_mode_list = builder.get_object("getiplayer_modes")
+		self._ui_version_list = builder.get_object("getiplayer_versions")
+		self._ui_record = builder.get_object("getiplayer_record")
+		self._ui_play = builder.get_object("getiplayer_play")
 
+		self._ui_record.connect("clicked", self._record_clicked_cb)
+		self._ui_play.connect("clicked", self._play_clicked_cb)
 
 		self.totem = totem_object
 		container.show_all ()
@@ -88,6 +93,9 @@ class GetIplayerPlugin (totem.Plugin):
 		if self.showing_info is not None:
 			def done(r): print "Done"
 			self.gip.record_programme(self.showing_info).on_complete(done)
+
+	def _play_clicked_cb(self, button):
+		print "Play is not yet implemented."
 
 	def _filter_at_branch(self, progs_store, branch):
 		node_names = []
@@ -141,6 +149,10 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_episode.set_text("")
 			self._ui_desc.set_text("")
 			self._ui_thumb.clear()
+			self._ui_mode_list.get_model().clear()
+			self._ui_version_list.get_model().clear()
+			self._ui_play.set_sensitive(False)
+			self._ui_record.set_sensitive(False)
 			self._ui_programme_info.show_all()
 		gobject.idle_add(prepare_loading)
 
@@ -154,6 +166,14 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_series.set_text(info.get("name", "Unknown name"))
 			self._ui_episode.set_text(info.get("episode", ""))
 			self._ui_desc.set_text(info.get("desc", "No description"))
+			self._ui_mode_list.get_model().clear()
+			self._ui_version_list.get_model().clear()
+			for version in info.get("versions", "").split(","):
+				if version:
+					self._ui_version_list.get_model().append([version])
+			self._ui_version_list.set_active_iter(self._ui_version_list.get_model().get_iter_root())
+			self._ui_play.set_sensitive(True)
+			self._ui_record.set_sensitive(True)
 
 			# Need to load image on another thread
 			load_image_in_background(self._ui_thumb, info["thumbnail"],

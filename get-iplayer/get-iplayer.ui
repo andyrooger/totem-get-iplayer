@@ -107,11 +107,13 @@
 					<child>
 						<object class="GtkButton" id="getiplayer_record">
 							<property name="label">Record</property>
+							<property name="sensitive">False</property>
 						</object>
 					</child>
 					<child>
 						<object class="GtkButton" id="getiplayer_play">
 							<property name="label">Play</property>
+							<property name="sensitive">False</property>
 						</object>
 						<packing>
 							<property name="left_attach">1</property>
