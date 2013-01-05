@@ -35,7 +35,7 @@ class GetIplayerPlugin (totem.Plugin):
 	def __init__ (self):
 		totem.Plugin.__init__ (self)
 		self.totem = None
-		self.filter_order = ["type", "channel", "category"]
+		self.filter_order = ["type", "version", "channel", "category"]
 		self.showing_info = None
 
 	def activate (self, totem_object):
