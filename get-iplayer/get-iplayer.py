@@ -107,7 +107,8 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		version = self._ui_version_list.get_model().get_value(selected_version, 0)
 		mode = self._ui_mode_list.get_model().get_value(selected_mode, 0)
-		self.gip.record_programme(self.showing_info, version, mode).on_complete(lambda _: self._populate_history())
+		self.gip.record_programme(self.showing_info, None, version, mode).on_complete(lambda _: self._populate_history())
+		self._populate_history()
 
 	def _play_clicked_cb(self, button):
 		print "Play is not yet implemented."
@@ -166,6 +167,8 @@ class GetIplayerPlugin (totem.Plugin):
 		def populate_store(history):
 			historystore = self._ui_history_list.get_model()
 			historystore.clear()
+			for name, version, mode in self.gip.recordings.values():
+				historystore.append(None, [-1, name, "Recording...", version, mode, ""])
 			for h in history:
 				historystore.append(None, h)
 

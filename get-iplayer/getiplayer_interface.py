@@ -138,7 +138,7 @@ class PendingResult(object):
 class GetIPlayer(object):
 	def __init__(self, location, output_location="~/.totem-get-iplayer"):
 		self.location = location
-		self.recordings = []
+		self.recordings = {}
 		self._version_result = self.get_filters("version")
 		self.output_location = os.path.abspath(os.path.expanduser(output_location))
 
@@ -215,10 +215,12 @@ class GetIPlayer(object):
 		info = self._call(index, info="", version=",".join(availableversions))
 		return info.translate(lambda i: parse_info(i, availableversions))
 
-	def record_programme(self, index, version="default", mode="best"):
-		self.recordings.append(index)
+	def record_programme(self, index, displayname=None, version="default", mode="best"):
+		if displayname is None:
+			displayname = "Programme %s" % index
+		self.recordings[index] = (displayname, version, mode)
 		recording = self._call(index, output=self.output_location, get="", q="", versions=version, modes=mode)
-		recording.on_complete(lambda _: self.recordings.remove(index) if index in self.recordings else None)
+		recording.on_complete(lambda _: self.recordings.pop(index, None))
 		return recording
 
 	def get_history(self, guess_version=True):
