@@ -97,6 +97,7 @@ class PendingResult(object):
 class GetIPlayer(object):
 	def __init__(self, location):
 		self.location = location
+		self.recordings = []
 
 	def _call(self, *vargs, **kwargs):
 		args = [self.location]
@@ -158,3 +159,9 @@ class GetIPlayer(object):
 	def get_programme_info(self, index):
 		info = self._call(index, info="")
 		return info.translate(lambda i: parse_info(i))
+
+	def record_programme(self, index):
+		self.recordings.append(index)
+		recording = self._call(index, get="", q="")
+		recording.on_complete(lambda _: self.recordings.remove(index) if index in self.recordings else None)
+		return recording

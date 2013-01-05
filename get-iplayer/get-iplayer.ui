@@ -67,6 +67,10 @@
 						<object class="GtkImage" id="getiplayer_thumbnail" />
 					</child>
 				</object>
+				<packing>
+					<property name="fill">False</property>
+					<property name="expand">False</property>
+				</packing>
 			</child>
 			<child>
 				<object class="GtkScrolledWindow" id="getiplayer_desc_scroll">
@@ -83,6 +87,42 @@
 						</object>
 					</child>
 				</object>
+			</child>
+			<child>
+				<object class="GtkTable" id="getiplayer_controls">
+					<property name="n-rows">2</property>
+					<property name="n-columns">2</property>
+					<child>
+						<object class="GtkButton" id="getiplayer_record">
+							<property name="label">Record</property>
+						</object>
+					</child>
+					<child>
+						<object class="GtkButton" id="getiplayer_play">
+							<property name="label">Play</property>
+						</object>
+						<packing>
+							<property name="left_attach">1</property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkComboBox" id="getiplayer_versions" />
+						<packing>
+							<property name="top_attach">1</property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkComboBox" id="getiplayer_modes" />
+						<packing>
+							<property name="left_attach">1</property>
+							<property name="top_attach">1</property>
+						</packing>
+					</child>
+				</object>
+				<packing>
+					<property name="fill">False</property>
+					<property name="expand">False</property>
+				</packing>
 			</child>
 		</object>
 	</child>

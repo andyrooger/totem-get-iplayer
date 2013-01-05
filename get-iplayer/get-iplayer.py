@@ -48,6 +48,7 @@ class GetIplayerPlugin (totem.Plugin):
 		progs_list = builder.get_object("getiplayer_progs_list")
 		progs_list.connect("row-expanded", self._row_expanded_cb)
 		progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
+		builder.get_object("getiplayer_record").connect("clicked", self._record_clicked_cb)
 
 		self._ui_programme_info = builder.get_object("getiplayer_description_pane")
 		self._ui_series = builder.get_object("getiplayer_series_text")
@@ -81,6 +82,12 @@ class GetIplayerPlugin (totem.Plugin):
 		treestore, branch = selection.get_selected()
 		index = None if branch is None else treestore.get_value(branch, IDX_PROGRAMME_INDEX)
 		self._load_info(None if index == -1 else index)
+
+	def _record_clicked_cb(self, button):
+		print self.showing_info
+		if self.showing_info is not None:
+			def done(r): print "Done"
+			self.gip.record_programme(self.showing_info).on_complete(done)
 
 	def _filter_at_branch(self, progs_store, branch):
 		node_names = []
