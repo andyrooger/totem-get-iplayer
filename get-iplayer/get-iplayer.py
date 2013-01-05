@@ -12,6 +12,13 @@ IDX_LOADING_NODE = 1
 IDX_HAS_LOADED = 2
 IDX_PROGRAMME_INDEX = 3
 
+IDXH_INDEX = 0
+IDXH_SERIES = 1
+IDXH_EPISODE = 2
+IDXH_VERSION = 3
+IDXH_MODE = 4
+IDXH_LOCATION = 5
+
 class TreeValues(object):
 	def __init__(self, title, loading_node=False, loaded=False, prog_idx=-1):
 		self.title = title
@@ -42,7 +49,7 @@ class GetIplayerPlugin (totem.Plugin):
 	def activate (self, totem_object):
 		# Build the interface
 		builder = self.load_interface ("get-iplayer.ui", True, totem_object.get_main_window (), self)
-		container = builder.get_object ('getiplayer_pane')
+		container = builder.get_object ('getiplayer_top_pane')
 
 		self.gip = GetIPlayer("/home/andyrooger/git/get_iplayer/get_iplayer")
 		progs_store = builder.get_object("getiplayer_progs_store")
@@ -59,6 +66,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_version_list = builder.get_object("getiplayer_versions")
 		self._ui_record = builder.get_object("getiplayer_record")
 		self._ui_play = builder.get_object("getiplayer_play")
+		self._ui_history_list = builder.get_object("getiplayer_history")
 
 		self._ui_record.connect("clicked", self._record_clicked_cb)
 		self._ui_play.connect("clicked", self._play_clicked_cb)
@@ -71,6 +79,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), container)
 
 		self._populate_filter_level(progs_list, None)
+		self._populate_history()
 
 	def deactivate (self, totem_object):
 		totem_object.remove_sidebar_page ("get-iplayer")
@@ -98,11 +107,7 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		version = self._ui_version_list.get_model().get_value(selected_version, 0)
 		mode = self._ui_mode_list.get_model().get_value(selected_mode, 0)
-		def done(out):
-			print "Recording Complete"
-			print out
-			# TODO: Replace this with an update of the recording list
-		self.gip.record_programme(self.showing_info, version, mode).on_complete(done)
+		self.gip.record_programme(self.showing_info, version, mode).on_complete(lambda _: self._populate_history())
 
 	def _play_clicked_cb(self, button):
 		print "Play is not yet implemented."
@@ -114,6 +119,7 @@ class GetIplayerPlugin (totem.Plugin):
 		if selected is None:
 			return
 		version = version_list.get_model().get_value(selected, 0)
+		self._ui_mode_list.get_model().clear()
 		for mode, size in (mode.split("=") for mode in info["modesizes"].get(version, "").split(",")):
 			self._ui_mode_list.get_model().append([mode, "%s (%s)" % (mode, size)])
 		self._ui_mode_list.set_active(0)
@@ -155,6 +161,15 @@ class GetIplayerPlugin (totem.Plugin):
 			])
 		active_filters = self._active_filters(progs_list.get_model(), branch)
 		self.gip.get_episodes(**active_filters).on_complete(got_episodes)
+
+	def _populate_history(self):
+		def populate_store(history):
+			historystore = self._ui_history_list.get_model()
+			historystore.clear()
+			for h in history:
+				historystore.append(None, h)
+
+		self.gip.get_history().on_complete(lambda history: gobject.idle_add(populate_store, history))
 
 	def _load_info(self, index):
 		self.showing_info = index

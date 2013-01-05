@@ -23,137 +23,206 @@
 	</columns>
 </object>
 
-<object class="GtkVPaned" id="getiplayer_pane">
-	<property name="border-width">5</property>
+<object class="GtkTreeStore" id="getiplayer_history_store">
+	<columns>
+		<column type="gint"/><!-- Index -->
+		<column type="gchararray"/><!-- Series Name -->
+		<column type="gchararray"/><!-- Episode Name -->
+		<column type="gchararray"/><!-- Version -->
+		<column type="gchararray"/><!-- Mode -->
+		<column type="gchararray"/><!-- Location -->
+	</columns>
+</object>
+
+<object class="GtkVPaned" id="getiplayer_top_pane">
 	<child>
-		<object class="GtkScrolledWindow" id="getiplayer_progs_scroll">
-			<property name="hscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
-			<property name="vscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
-			<property name="shadow-type">GTK_SHADOW_IN</property>
+		<object class="GtkVPaned" id="getiplayer_inner_pane">
+			<property name="border-width">5</property>
 			<child>
-				<object class="GtkTreeView" id="getiplayer_progs_list">
-					<property name="model">getiplayer_progs_store</property>
-					<property name="expander-column">getiplayer_title_column</property>
-					<property name="headers-visible">False</property>
+				<object class="GtkScrolledWindow" id="getiplayer_progs_scroll">
+					<property name="hscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+					<property name="vscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+					<property name="shadow-type">GTK_SHADOW_IN</property>
 					<child>
-						<object class="GtkTreeViewColumn" id="getiplayer_title_column">
+						<object class="GtkTreeView" id="getiplayer_progs_list">
+							<property name="model">getiplayer_progs_store</property>
+							<property name="expander-column">getiplayer_title_column</property>
+							<property name="headers-visible">False</property>
 							<child>
-								<object class="GtkCellRendererText" id="getiplayer_title_cell_renderer"/>
-								<attributes>
-									<attribute name="text">0</attribute>
-								</attributes>
+								<object class="GtkTreeViewColumn" id="getiplayer_title_column">
+									<child>
+										<object class="GtkCellRendererText" id="getiplayer_title_cell_renderer"/>
+										<attributes>
+											<attribute name="text">0</attribute>
+										</attributes>
+									</child>
+								</object>
 							</child>
 						</object>
+					</child>
+				</object>
+			</child>
+			<child>
+				<object class="GtkVBox" id="getiplayer_description_pane">
+					<property name="border-width">5</property>
+					<property name="homogeneous">False</property>
+					<property name="spacing">6</property>
+					<child>
+						<object class="GtkHBox" id="getiplayer_subdesc_pane">
+							<property name="border-width">5</property>
+							<property name="homogeneous">False</property>
+							<property name="spacing">6</property>
+							<child>
+								<object class="GtkVBox" id="getiplayer_title_pane">
+									<property name="border-width">5</property>
+									<property name="homogeneous">False</property>
+									<property name="spacing">6</property>
+									<child>
+										<object class="GtkLabel" id="getiplayer_series_text">
+											<property name="wrap">True</property>
+										</object>
+									</child>
+									<child>
+										<object class="GtkLabel" id="getiplayer_episode_text">
+											<property name="wrap">True</property>
+										</object>
+									</child>
+								</object>
+							</child>
+							<child>
+								<object class="GtkImage" id="getiplayer_thumbnail" />
+							</child>
+						</object>
+						<packing>
+							<property name="fill">False</property>
+							<property name="expand">False</property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkScrolledWindow" id="getiplayer_desc_scroll">
+							<property name="hscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+							<property name="vscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+							<property name="shadow-type">GTK_SHADOW_IN</property>
+							<child>
+								<object class="GtkViewport" id="getiplayer_desc_view">
+									<child>
+										<object class="GtkLabel" id="getiplayer_desc_text">
+											<property name="wrap">True</property>
+										</object>
+									</child>
+								</object>
+							</child>
+						</object>
+					</child>
+					<child>
+						<object class="GtkTable" id="getiplayer_controls">
+							<property name="n-rows">2</property>
+							<property name="n-columns">2</property>
+							<child>
+								<object class="GtkButton" id="getiplayer_record">
+									<property name="label">Record</property>
+									<property name="sensitive">False</property>
+								</object>
+							</child>
+							<child>
+								<object class="GtkButton" id="getiplayer_play">
+									<property name="label">Play</property>
+									<property name="sensitive">False</property>
+								</object>
+								<packing>
+									<property name="left_attach">1</property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkComboBox" id="getiplayer_versions">
+									<property name="model">getiplayer_version_store</property>
+									<child>
+										<object class="GtkCellRendererText" id="getiplayer_versions_text"/>
+										<attributes>
+											<attribute name="text">0</attribute>
+										</attributes>
+									</child>
+								</object>
+								<packing>
+									<property name="top_attach">1</property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkComboBox" id="getiplayer_modes">
+									<property name="model">getiplayer_mode_store</property>
+									<child>
+										<object class="GtkCellRendererText" id="getiplayer_modes_text"/>
+										<attributes>
+											<attribute name="text">1</attribute>
+										</attributes>
+									</child>
+								</object>
+								<packing>
+									<property name="left_attach">1</property>
+									<property name="top_attach">1</property>
+								</packing>
+							</child>
+						</object>
+						<packing>
+							<property name="fill">False</property>
+							<property name="expand">False</property>
+						</packing>
 					</child>
 				</object>
 			</child>
 		</object>
 	</child>
 	<child>
-		<object class="GtkVBox" id="getiplayer_description_pane">
-			<property name="border-width">5</property>
-			<property name="homogeneous">False</property>
-			<property name="spacing">6</property>
+		<object class="GtkTreeView" id="getiplayer_history">
+			<property name="model">getiplayer_history_store</property>
+			<property name="headers-visible">True</property>
 			<child>
-				<object class="GtkHBox" id="getiplayer_subdesc_pane">
-					<property name="border-width">5</property>
-					<property name="homogeneous">False</property>
-					<property name="spacing">6</property>
+				<object class="GtkTreeViewColumn" id="getiplayer_history_series">
+					<property name="title">Series</property>
+					<property name="resizable">True</property>
 					<child>
-						<object class="GtkVBox" id="getiplayer_title_pane">
-							<property name="border-width">5</property>
-							<property name="homogeneous">False</property>
-							<property name="spacing">6</property>
-							<child>
-								<object class="GtkLabel" id="getiplayer_series_text">
-									<property name="wrap">True</property>
-								</object>
-							</child>
-							<child>
-								<object class="GtkLabel" id="getiplayer_episode_text">
-									<property name="wrap">True</property>
-								</object>
-							</child>
-						</object>
-					</child>
-					<child>
-						<object class="GtkImage" id="getiplayer_thumbnail" />
-					</child>
-				</object>
-				<packing>
-					<property name="fill">False</property>
-					<property name="expand">False</property>
-				</packing>
-			</child>
-			<child>
-				<object class="GtkScrolledWindow" id="getiplayer_desc_scroll">
-					<property name="hscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
-					<property name="vscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
-					<property name="shadow-type">GTK_SHADOW_IN</property>
-					<child>
-						<object class="GtkViewport" id="getiplayer_desc_view">
-							<child>
-								<object class="GtkLabel" id="getiplayer_desc_text">
-									<property name="wrap">True</property>
-								</object>
-							</child>
-						</object>
+						<object class="GtkCellRendererText" id="getiplayer_history_series_renderer"/>
+						<attributes>
+							<attribute name="text">1</attribute>
+						</attributes>
 					</child>
 				</object>
 			</child>
 			<child>
-				<object class="GtkTable" id="getiplayer_controls">
-					<property name="n-rows">2</property>
-					<property name="n-columns">2</property>
+				<object class="GtkTreeViewColumn" id="getiplayer_history_episode">
+					<property name="title">Episode</property>
+					<property name="resizable">True</property>
 					<child>
-						<object class="GtkButton" id="getiplayer_record">
-							<property name="label">Record</property>
-							<property name="sensitive">False</property>
-						</object>
-					</child>
-					<child>
-						<object class="GtkButton" id="getiplayer_play">
-							<property name="label">Play</property>
-							<property name="sensitive">False</property>
-						</object>
-						<packing>
-							<property name="left_attach">1</property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkComboBox" id="getiplayer_versions">
-							<property name="model">getiplayer_version_store</property>
-							<child>
-								<object class="GtkCellRendererText" id="getiplayer_versions_text"/>
-								<attributes>
-									<attribute name="text">0</attribute>
-								</attributes>
-							</child>
-						</object>
-						<packing>
-							<property name="top_attach">1</property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkComboBox" id="getiplayer_modes">
-							<property name="model">getiplayer_mode_store</property>
-							<child>
-								<object class="GtkCellRendererText" id="getiplayer_modes_text"/>
-								<attributes>
-									<attribute name="text">1</attribute>
-								</attributes>
-							</child>
-						</object>
-						<packing>
-							<property name="left_attach">1</property>
-							<property name="top_attach">1</property>
-						</packing>
+						<object class="GtkCellRendererText" id="getiplayer_history_episode_renderer"/>
+						<attributes>
+							<attribute name="text">2</attribute>
+						</attributes>
 					</child>
 				</object>
-				<packing>
-					<property name="fill">False</property>
-					<property name="expand">False</property>
-				</packing>
+			</child>
+			<child>
+				<object class="GtkTreeViewColumn" id="getiplayer_history_version">
+					<property name="title">Version</property>
+					<property name="resizable">True</property>
+					<child>
+						<object class="GtkCellRendererText" id="getiplayer_history_version_renderer"/>
+						<attributes>
+							<attribute name="text">3</attribute>
+						</attributes>
+					</child>
+				</object>
+			</child>
+			<child>
+				<object class="GtkTreeViewColumn" id="getiplayer_history_mode">
+					<property name="title">Mode</property>
+					<property name="resizable">True</property>
+					<child>
+						<object class="GtkCellRendererText" id="getiplayer_history_mode_renderer"/>
+						<attributes>
+							<attribute name="text">4</attribute>
+						</attributes>
+					</child>
+				</object>
 			</child>
 		</object>
 	</child>

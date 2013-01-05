@@ -12,6 +12,7 @@ RE_LISTING_ENTRY = re.compile(r"^(.+) \((\d+?)\)$", re.MULTILINE)
 RE_MATCH_TOTAL = re.compile(r"^INFO: (\d+) Matching Programmes$", re.MULTILINE)
 RE_TREE_EPISODE = re.compile(r"^  (\d+?): \((\d*?)\) (.*)$")
 RE_INFO_LINE = re.compile(r"^(.+?):\s+(.+)$", re.MULTILINE)
+RE_HISTORY = re.compile(r"^\((\d+)\):\((.+)\):\((.+)\):\((.+)\):\((.+)\):\((.+)\)$", re.MULTILINE)
 
 def parse_listings(input, withcounts=False):
 	listings = RE_LISTING_ENTRY.finditer(input)
@@ -77,6 +78,16 @@ def parse_versions(version_collections):
 		versions.update(vc.split(","))
 	versions.discard("")
 	return list(versions)
+
+def parse_history(input, guess_versions):
+	for match in RE_HISTORY.finditer(input):
+		index, name, episode, version, mode, location = match.groups()
+		index = int(index)
+		if guess_versions:
+			filename = os.path.basename(location)
+			filename = os.path.splitext(filename)[0]
+			version = filename.rsplit("_", 1)[-1]
+		yield (index, name, episode, version, mode, location)
 
 class PendingResult(object):
 	def __init__(self, hasresult, getresult):
@@ -209,3 +220,7 @@ class GetIPlayer(object):
 		recording = self._call(index, output=self.output_location, get="", q="", versions=version, modes=mode)
 		recording.on_complete(lambda _: self.recordings.remove(index) if index in self.recordings else None)
 		return recording
+
+	def get_history(self, guess_version=True):
+		history = self._call(history="", listformat="(<index>):(<name>):(<episode>):(<versions>):(<mode>):(<filename>)")
+		return history.translate(lambda h: list(parse_history(h, guess_version)))
