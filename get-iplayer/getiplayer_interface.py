@@ -101,10 +101,19 @@ class PendingResult(object):
 	def translate(self, trans):
 		return PendingResult(self._hasresult, lambda: trans(self.get_result()))
 
+	def then(self, tonext):
+		translated = self.translate(tonext)
+		def hasresult():
+			return translated.has_result() and translated.get_result().has_result()
+		def getresult():
+			return translated.get_result().get_result()
+		return PendingResult(hasresult, getresult)
+
 class GetIPlayer(object):
 	def __init__(self, location):
 		self.location = location
 		self.recordings = []
+		self._version_result = self.get_filters("version")
 
 	def _call(self, *vargs, **kwargs):
 		args = [self.location]
@@ -169,8 +178,14 @@ class GetIPlayer(object):
 		episodes = self._call(tree="", listformat="<index>: (<episodenum>) <episode>", **fixed_filtering)
 		return episodes.translate(parse_episodes)
 
-	def get_programme_info(self, index):
-		info = self._call(index, info="")
+	def get_programme_info(self, index, availableversions=None):
+		'''
+		Need one or more of availableversions to be available for this programme or we get incomplete info.
+		If they are not provided then we fetch them first.
+		'''
+		if availableversions is None:
+			return self._version_result.then(lambda vs: self.get_programme_info(index, vs))
+		info = self._call(index, info="", version=",".join(availableversions))
 		return info.translate(parse_info)
 
 	def record_programme(self, index):
