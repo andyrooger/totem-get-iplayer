@@ -47,14 +47,28 @@ def parse_episodes(input):
 		sorted_eps[series_name] = [(i, name) for i, n, name in sorted(series_episodes, key=lambda ep: ep[1])]
 	return sorted_eps
 
-def parse_info(input):
+def parse_info(input, versions):
 	relevant = input.split("\n\n")[-2]
 	discovered_info = RE_INFO_LINE.finditer(relevant)
 	info = {}
 	for i in discovered_info:
 		name, value = i.groups()
-		info[name] = value
-	return info
+		version = ""
+		for v in versions:
+			if value.startswith(v+":"):
+				version = v
+				value = value[len(v)+1:].lstrip()
+		current_versions = info.get(name, {})
+		current_versions[version] = value
+		info[name] = current_versions
+	# Remove version dicts for things with no versions
+	clean_info = {}
+	for k, v in info.iteritems():
+		if list(v.keys()) == [""]:
+			clean_info[k] = v[""]
+		else:
+			clean_info[k] = v
+	return clean_info
 
 def parse_versions(version_collections):
 	versions = set()
@@ -186,7 +200,7 @@ class GetIPlayer(object):
 		if availableversions is None:
 			return self._version_result.then(lambda vs: self.get_programme_info(index, vs))
 		info = self._call(index, info="", version=",".join(availableversions))
-		return info.translate(parse_info)
+		return info.translate(lambda i: parse_info(i, availableversions))
 
 	def record_programme(self, index):
 		self.recordings.append(index)

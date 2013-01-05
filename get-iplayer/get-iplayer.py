@@ -37,6 +37,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self.totem = None
 		self.filter_order = ["type", "version", "channel", "category"]
 		self.showing_info = None
+		self._mode_callback_id = None
 
 	def activate (self, totem_object):
 		# Build the interface
@@ -97,6 +98,17 @@ class GetIplayerPlugin (totem.Plugin):
 	def _play_clicked_cb(self, button):
 		print "Play is not yet implemented."
 
+	def _version_selected_cb(self, version_list, index, info):
+		if self.showing_info != index:
+			return
+		selected = version_list.get_active_iter()
+		if selected is None:
+			return
+		version = version_list.get_model().get_value(selected, 0)
+		for mode, size in (mode.split("=") for mode in info["modesizes"].get(version, "").split(",")):
+			self._ui_mode_list.get_model().append([mode, "%s (%s)" % (mode, size)])
+		self._ui_mode_list.set_active(0)
+
 	def _filter_at_branch(self, progs_store, branch):
 		node_names = []
 		while branch is not None:
@@ -149,6 +161,9 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_episode.set_text("")
 			self._ui_desc.set_text("")
 			self._ui_thumb.clear()
+			if self._mode_callback_id is not None:
+				self._ui_version_list.disconnect(self._mode_callback_id)
+				self._mode_callback_id = None
 			self._ui_mode_list.get_model().clear()
 			self._ui_version_list.get_model().clear()
 			self._ui_play.set_sensitive(False)
@@ -171,6 +186,7 @@ class GetIplayerPlugin (totem.Plugin):
 			for version in info.get("versions", "").split(","):
 				if version:
 					self._ui_version_list.get_model().append([version])
+			self._mode_callback_id = self._ui_version_list.connect("changed", self._version_selected_cb, index, info)
 			self._ui_version_list.set_active_iter(self._ui_version_list.get_model().get_iter_root())
 			self._ui_play.set_sensitive(True)
 			self._ui_record.set_sensitive(True)
