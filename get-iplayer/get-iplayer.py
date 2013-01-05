@@ -90,10 +90,19 @@ class GetIplayerPlugin (totem.Plugin):
 		self._load_info(None if index == -1 else index)
 
 	def _record_clicked_cb(self, button):
-		print self.showing_info
-		if self.showing_info is not None:
-			def done(r): print "Done"
-			self.gip.record_programme(self.showing_info).on_complete(done)
+		if self.showing_info is None:
+			return
+		selected_version = self._ui_version_list.get_active_iter()
+		selected_mode = self._ui_mode_list.get_active_iter()
+		if selected_version is None or selected_mode is None:
+			return
+		version = self._ui_version_list.get_model().get_value(selected_version, 0)
+		mode = self._ui_mode_list.get_model().get_value(selected_mode, 0)
+		def done(out):
+			print "Recording Complete"
+			print out
+			# TODO: Replace this with an update of the recording list
+		self.gip.record_programme(self.showing_info, version, mode).on_complete(done)
 
 	def _play_clicked_cb(self, button):
 		print "Play is not yet implemented."
@@ -187,7 +196,7 @@ class GetIplayerPlugin (totem.Plugin):
 				if version:
 					self._ui_version_list.get_model().append([version])
 			self._mode_callback_id = self._ui_version_list.connect("changed", self._version_selected_cb, index, info)
-			self._ui_version_list.set_active_iter(self._ui_version_list.get_model().get_iter_root())
+			self._ui_version_list.set_active(0)
 			self._ui_play.set_sensitive(True)
 			self._ui_record.set_sensitive(True)
 
