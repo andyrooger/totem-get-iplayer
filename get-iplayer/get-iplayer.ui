@@ -86,6 +86,11 @@
 											<property name="wrap">True</property>
 										</object>
 									</child>
+									<child>
+										<object class="GtkLabel" id="getiplayer_duration_text">
+											<property name="wrap">True</property>
+										</object>
+									</child>
 								</object>
 							</child>
 							<child>

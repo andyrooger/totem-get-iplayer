@@ -60,6 +60,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_programme_info = builder.get_object("getiplayer_description_pane")
 		self._ui_series = builder.get_object("getiplayer_series_text")
 		self._ui_episode = builder.get_object("getiplayer_episode_text")
+		self._ui_duration = builder.get_object("getiplayer_duration_text")
 		self._ui_desc = builder.get_object("getiplayer_desc_text")
 		self._ui_thumb = builder.get_object("getiplayer_thumbnail")
 		self._ui_mode_list = builder.get_object("getiplayer_modes")
@@ -210,6 +211,7 @@ class GetIplayerPlugin (totem.Plugin):
 				return
 			self._ui_series.set_text("Loading programme %s..." % index)
 			self._ui_episode.set_text("")
+			self._ui_duration.set_text("")
 			self._ui_desc.set_text("")
 			self._ui_thumb.clear()
 			if self._mode_callback_id is not None:
@@ -231,6 +233,13 @@ class GetIplayerPlugin (totem.Plugin):
 				return
 			self._ui_series.set_text(info.get("name", "Unknown name"))
 			self._ui_episode.set_text(info.get("episode", ""))
+			duration = info.get("duration", "Unknown")
+			try:
+				duration = int(duration) # seconds
+				duration = str(duration // 60) + " minutes"
+			except ValueError:
+				pass # Wasn't a number, we don't care
+			self._ui_duration.set_text(duration)
 			self._ui_desc.set_text(info.get("desc", "No description"))
 			self._ui_mode_list.get_model().clear()
 			self._ui_version_list.get_model().clear()
