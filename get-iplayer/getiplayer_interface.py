@@ -216,7 +216,7 @@ class GetIPlayer(object):
 		'''
 		if availableversions is None:
 			return self._version_result.then(lambda vs: self.get_programme_info(index, vs))
-		info = self._call(index, info="", version=",".join(availableversions))
+		info = self._call(index, info="", versions=",".join(availableversions))
 		return info.translate(lambda i: parse_info(i, availableversions))
 
 	def record_programme(self, index, displayname=None, version="default", mode="best"):
