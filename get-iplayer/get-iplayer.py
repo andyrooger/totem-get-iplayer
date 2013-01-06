@@ -70,6 +70,7 @@ class GetIplayerPlugin (totem.Plugin):
 
 		self._ui_record.connect("clicked", self._record_clicked_cb)
 		self._ui_play.connect("clicked", self._play_clicked_cb)
+		self._ui_history_list.connect("row-activated", self._history_activated_cb)
 
 		self.totem = totem_object
 		container.show_all ()
@@ -124,6 +125,13 @@ class GetIplayerPlugin (totem.Plugin):
 		for mode, size in (mode.split("=") for mode in info["modesizes"].get(version, "").split(",")):
 			self._ui_mode_list.get_model().append([mode, "%s (%s)" % (mode, size)])
 		self._ui_mode_list.set_active(0)
+
+	def _history_activated_cb(self, treeview, path, column):
+		treemodel = treeview.get_model()
+		iter = treemodel.get_iter(path)
+		file = treemodel.get_value(iter, IDXH_LOCATION)
+		name = treemodel.get_value(iter, IDXH_SERIES) + " - " + treemodel.get_value(iter, IDXH_EPISODE)
+		self.totem.add_to_playlist_and_play("file://" + file, name, True)
 
 	def _filter_at_branch(self, progs_store, branch):
 		node_names = []
