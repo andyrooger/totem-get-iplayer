@@ -133,7 +133,15 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		version = version_list.get_model().get_value(selected, 0)
 		self._ui_mode_list.get_model().clear()
-		for mode, size in (mode.split("=") for mode in info["modesizes"].get(version, "").split(",")):
+		modesizes = []
+		modes = info.get("modesizes", {}).get(version, "")
+		if modes:
+			modesizes = [mode.split("=") for mode in modes.split(",")]
+		else:
+			modes = info.get("modes", {}).get(version, "")
+			if modes:
+				modesizes = [(mode, "?Mb") for mode in modes.split(",")]
+		for mode, size in modesizes:
 			self._ui_mode_list.get_model().append([mode, "%s (%s)" % (mode, size)])
 		self._ui_mode_list.set_active(0)
 
