@@ -115,7 +115,15 @@ class GetIplayerPlugin (totem.Plugin):
 		self._populate_history()
 
 	def _play_clicked_cb(self, button):
-		print "Play is not yet implemented."
+		if self.showing_info is None:
+			return
+		selected_version = self._ui_version_list.get_active_iter()
+		selected_mode = self._ui_mode_list.get_active_iter()
+		if selected_version is None or selected_mode is None:
+			return
+		version = self._ui_version_list.get_model().get_value(selected_version, 0)
+		mode = self._ui_mode_list.get_model().get_value(selected_mode, 0)
+		self.gip.stream_programme(self.showing_info, version, mode)
 
 	def _version_selected_cb(self, version_list, index, info):
 		if self.showing_info != index:

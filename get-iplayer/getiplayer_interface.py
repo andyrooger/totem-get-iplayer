@@ -142,7 +142,7 @@ class GetIPlayer(object):
 		self._version_result = self.get_filters("version")
 		self.output_location = os.path.abspath(os.path.expanduser(output_location))
 
-	def _call(self, *vargs, **kwargs):
+	def _parse_args(self, vargs, kwargs):
 		args = [self.location]
 		args.extend(str(v) for v in vargs)
 		for k, v in kwargs.iteritems():
@@ -150,6 +150,10 @@ class GetIPlayer(object):
 			if v:
 				arg += (" " if len(k) is 1 else "=") + v
 			args.append(arg)
+		return args
+
+	def _call(self, *vargs, **kwargs):
+		args = self._parse_args(vargs, kwargs)
 		proc = subprocess.Popen(args, stdout=subprocess.PIPE)
 		def get_result():
 			stdout, stderr = proc.communicate()
@@ -226,3 +230,6 @@ class GetIPlayer(object):
 	def get_history(self, guess_version=True):
 		history = self._call(history="", listformat="(<index>):(<name>):(<episode>):(<versions>):(<mode>):(<filename>)")
 		return history.translate(lambda h: list(parse_history(h, guess_version)))
+
+	def stream_programme(self, index, version="default", mode="best", stream_cmd="totem fd://0 --no-existing-session"):
+		return self._call(index, versions=version, modes=mode, stream="", player=stream_cmd)
