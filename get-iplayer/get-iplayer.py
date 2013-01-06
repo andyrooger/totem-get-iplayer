@@ -140,9 +140,11 @@ class GetIplayerPlugin (totem.Plugin):
 		else:
 			modes = info.get("modes", {}).get(version, "")
 			if modes:
-				modesizes = [(mode, "?Mb") for mode in modes.split(",")]
+				modesizes = [(mode, None) for mode in modes.split(",")]
+		modesizes.insert(0, ("best", None))
 		for mode, size in modesizes:
-			self._ui_mode_list.get_model().append([mode, "%s (%s)" % (mode, size)])
+			display = mode if size is None else "%s (%s)" % (mode, size)
+			self._ui_mode_list.get_model().append([mode, display])
 		self._ui_mode_list.set_active(0)
 
 	def _history_activated_cb(self, treeview, path, column):
