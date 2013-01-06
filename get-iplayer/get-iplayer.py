@@ -5,6 +5,7 @@ import gobject
 import urllib2
 import gtk
 import threading
+from collections import defaultdict
 from getiplayer_interface import GetIPlayer
 
 IDX_TITLE = 0
@@ -13,11 +14,10 @@ IDX_HAS_LOADED = 2
 IDX_PROGRAMME_INDEX = 3
 
 IDXH_INDEX = 0
-IDXH_SERIES = 1
-IDXH_EPISODE = 2
-IDXH_VERSION = 3
-IDXH_MODE = 4
-IDXH_LOCATION = 5
+IDXH_NAME = 1
+IDXH_VERSION = 2
+IDXH_MODE = 3
+IDXH_LOCATION = 4
 
 class TreeValues(object):
 	def __init__(self, title, loading_node=False, loaded=False, prog_idx=-1):
@@ -130,7 +130,11 @@ class GetIplayerPlugin (totem.Plugin):
 		treemodel = treeview.get_model()
 		iter = treemodel.get_iter(path)
 		file = treemodel.get_value(iter, IDXH_LOCATION)
-		name = treemodel.get_value(iter, IDXH_SERIES) + " - " + treemodel.get_value(iter, IDXH_EPISODE)
+		if not file:
+			return
+		episode = treemodel.get_value(iter, IDXH_NAME)
+		series = treemodel.get_value(treemodel.iter_parent(iter), IDXH_NAME)
+		name = series + " - " + episode
 		self.totem.add_to_playlist_and_play("file://" + file, name, True)
 
 	def _filter_at_branch(self, progs_store, branch):
@@ -175,10 +179,17 @@ class GetIplayerPlugin (totem.Plugin):
 		def populate_store(history):
 			historystore = self._ui_history_list.get_model()
 			historystore.clear()
-			for name, version, mode in self.gip.recordings.values():
-				historystore.append(None, [-1, name, "Recording...", version, mode, ""])
-			for h in history:
-				historystore.append(None, h)
+			if self.gip.recordings.values():
+				recording_branch = historystore.append(None, [-1, "Currently Recording", "", "", ""])
+				for name, version, mode in self.gip.recordings.values():
+					historystore.append(recording_branch, [-1, name + " (Recording...)", version, mode, ""])
+			by_series = defaultdict(list)
+			for index, series, episode, version, mode, location in history:
+				by_series[series].append((index, episode, version, mode, location))
+			for series, episodes in by_series.iteritems():
+				series_branch = historystore.append(None, [-1, series, "", "", ""])
+				for index, episode, version, mode, location in episodes:
+					historystore.append(series_branch, [index, episode, version, mode, location])
 
 		self.gip.get_history().on_complete(lambda history: gobject.idle_add(populate_store, history))
 
