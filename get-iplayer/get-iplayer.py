@@ -67,6 +67,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_record = builder.get_object("getiplayer_record")
 		self._ui_play = builder.get_object("getiplayer_play")
 		self._ui_history_list = builder.get_object("getiplayer_history")
+		self._ui_history_pane = builder.get_object("getiplayer_history_scroll")
 
 		self._ui_record.connect("clicked", self._record_clicked_cb)
 		self._ui_play.connect("clicked", self._play_clicked_cb)
@@ -75,6 +76,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self.totem = totem_object
 		container.show_all ()
 		self._ui_programme_info.hide_all()
+		self._ui_history_pane.hide_all()
 
 		# Add the interface to Totem's sidebar
 		self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), container)
@@ -177,6 +179,7 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def _populate_history(self):
 		def populate_store(history):
+			self._ui_history_pane.hide_all()
 			historystore = self._ui_history_list.get_model()
 			historystore.clear()
 			if self.gip.recordings.values():
@@ -190,6 +193,8 @@ class GetIplayerPlugin (totem.Plugin):
 				series_branch = historystore.append(None, [-1, series, "", "", ""])
 				for index, episode, version, mode, location in episodes:
 					historystore.append(series_branch, [index, episode, version, mode, location])
+			if historystore.get_iter_root() is not None:
+				self._ui_history_pane.show_all()
 
 		self.gip.get_history().on_complete(lambda history: gobject.idle_add(populate_store, history))
 
