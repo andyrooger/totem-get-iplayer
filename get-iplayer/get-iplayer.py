@@ -250,11 +250,23 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_series.set_text(info.get("name", "Unknown name"))
 			self._ui_episode.set_text(info.get("episode", ""))
 			duration = info.get("duration", "Unknown")
+			hasduration = False
 			try:
 				duration = int(duration) # seconds
 				duration = str(duration // 60) + " minutes"
+				hasduration = True
 			except ValueError:
-				pass # Wasn't a number, we don't care
+				# Wasn't a number, try mins:seconds format
+				try:
+					minutes, seconds = duration.split(":")
+					minutes = int(minutes)
+					seconds = int(seconds)
+					if seconds >= 30:
+						minutes += 1
+					duration = str(minutes) + " minutes"
+					hasduration = True
+				except ValueError:
+					pass # Leave as it is
 			self._ui_duration.set_text(duration)
 			self._ui_desc.set_text(info.get("desc", "No description"))
 			self._ui_mode_list.get_model().clear()
@@ -265,7 +277,8 @@ class GetIplayerPlugin (totem.Plugin):
 			self._mode_callback_id = self._ui_version_list.connect("changed", self._version_selected_cb, index, info)
 			self._ui_version_list.set_active(0)
 			self._ui_play.set_sensitive(True)
-			self._ui_record.set_sensitive(True)
+			if hasduration:
+				self._ui_record.set_sensitive(True)
 
 			# Need to load image on another thread
 			load_image_in_background(self._ui_thumb, info["thumbnail"],
