@@ -71,7 +71,6 @@ class GetIplayerPlugin (totem.Plugin):
 		self.config_dialog = builder.get_object('config_dialog')
 		builder.get_object('config_container').show_all()
 
-		self.gip = GetIPlayer("/home/andyrooger/git/get_iplayer/get_iplayer")
 		progs_store = builder.get_object("getiplayer_progs_store")
 		progs_list = builder.get_object("getiplayer_progs_list")
 		progs_list.connect("row-expanded", self._row_expanded_cb)
@@ -99,9 +98,14 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_programme_info.hide_all()
 		self._ui_history_pane.hide_all()
 
-		# Add the interface to Totem's sidebar
-		self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), container)
+		# Add the interface to Totem's sidebar only if get_iplayer is accessible, otherwise show error
+		try:
+			self.gip = GetIPlayer("/home/andyrooger/git/get_iplayer/get_iplayer")
+		except OSError:
+			self.totem.action_error("Get iPlayer", "Cannot find get_iplayer. Please install it if you need to and set the location under plugin configuration.")
+			return
 
+		self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), container)
 		self._populate_filter_level(progs_list, None)
 		self._populate_history()
 
