@@ -36,9 +36,6 @@ Installation
 License
 -------
 
-License
-=======
-
 Full details in LICENSE file.
 
 totem-get-iplayer
