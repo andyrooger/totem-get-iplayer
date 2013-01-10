@@ -68,6 +68,8 @@ class GetIplayerPlugin (totem.Plugin):
 		# Build the interface
 		builder = self.load_interface ("get-iplayer.ui", True, totem_object.get_main_window (), self)
 		container = builder.get_object ('getiplayer_top_pane')
+		self.config_dialog = builder.get_object('config_dialog')
+		builder.get_object('config_container').show_all()
 
 		self.gip = GetIPlayer("/home/andyrooger/git/get_iplayer/get_iplayer")
 		progs_store = builder.get_object("getiplayer_progs_store")
@@ -105,6 +107,9 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def deactivate (self, totem_object):
 		totem_object.remove_sidebar_page ("get-iplayer")
+
+	def create_configure_dialog(self, *args):
+		return self.config_dialog
 
 	def _row_expanded_cb(self, tree, iter, path):
 		try:
