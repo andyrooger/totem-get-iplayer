@@ -68,9 +68,8 @@ class GetIplayerPlugin (totem.Plugin):
 		# Build the interface
 		builder = self.load_interface ("get-iplayer.ui", True, totem_object.get_main_window (), self)
 		container = builder.get_object ('getiplayer_top_pane')
-		self.config_dialog = builder.get_object('config_dialog')
-		builder.get_object('config_container').show_all()
 
+		# Sidebar
 		progs_store = builder.get_object("getiplayer_progs_store")
 		progs_list = builder.get_object("getiplayer_progs_list")
 		progs_list.connect("row-expanded", self._row_expanded_cb)
@@ -93,6 +92,19 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_play.connect("clicked", self._play_clicked_cb)
 		self._ui_history_list.connect("row-activated", self._history_activated_cb)
 
+		# Configuration
+		self.config_dialog = builder.get_object('config_dialog')
+		builder.get_object('config_container').show_all()
+
+		builder.get_object("config_cancel_button").connect("clicked", (lambda button: self.config_dialog.hide()))
+		builder.get_object("config_ok_button").connect("clicked", self._config_confirmed_cb)
+
+		self._config_getiplayer_location = builder.get_object("config_getiplayer_loc")
+		getiplayer_filter = gtk.FileFilter()
+		getiplayer_filter.set_name("get_iplayer executable")
+		getiplayer_filter.add_pattern("get_iplayer")
+		self._config_getiplayer_location.add_filter(getiplayer_filter)
+
 		self.totem = totem_object
 		container.show_all ()
 		self._ui_programme_info.hide_all()
@@ -113,7 +125,11 @@ class GetIplayerPlugin (totem.Plugin):
 		totem_object.remove_sidebar_page ("get-iplayer")
 
 	def create_configure_dialog(self, *args):
+		self.config_dialog.set_default_response(gtk.RESPONSE_OK)
 		return self.config_dialog
+
+	def _config_confirmed_cb(self, button):
+		self.config_dialog.hide()
 
 	def _row_expanded_cb(self, tree, iter, path):
 		try:
