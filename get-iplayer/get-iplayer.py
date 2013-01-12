@@ -64,7 +64,6 @@ class GetIplayerPlugin (totem.Plugin):
 	def __init__ (self):
 		totem.Plugin.__init__ (self)
 		self.totem = None
-		self.gconf = gconf.client_get_default()
 		self.filter_order = ["type", "version", "channel", "category"]
 		self.showing_info = None
 		self._mode_callback_id = None
@@ -98,19 +97,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_play.connect("clicked", self._play_clicked_cb)
 		self._ui_history_list.connect("row-activated", self._history_activated_cb)
 
-		# Configuration
-		self.config_dialog = builder.get_object('config_dialog')
-		builder.get_object('config_container').show_all()
-
-		builder.get_object("config_cancel_button").connect("clicked", (lambda button: self.config_dialog.hide()))
-		builder.get_object("config_ok_button").connect("clicked", self._config_confirmed_cb)
-
-		self._uiconfig_getiplayer_location = builder.get_object("config_getiplayer_loc")
-		getiplayer_filter = gtk.FileFilter()
-		getiplayer_filter.set_name("get_iplayer executable")
-		getiplayer_filter.add_pattern("get_iplayer")
-		self._uiconfig_getiplayer_location.add_filter(getiplayer_filter)
-
+		self.config = Configuration(builder, self.reset_ui)
 		self.totem = totem_object
 
 		# Add the interface to Totem's sidebar only if get_iplayer is accessible, otherwise show error
@@ -122,9 +109,9 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def attach_getiplayer(self):
 		location_correct = False
-		if self.config_getiplayer_location is not None:
+		if self.config.config_getiplayer_location is not None:
 			try:
-				self.gip = GetIPlayer(self.config_getiplayer_location)
+				self.gip = GetIPlayer(self.config.config_getiplayer_location)
 			except OSError: pass
 			else:
 				location_correct = True
@@ -143,17 +130,7 @@ class GetIplayerPlugin (totem.Plugin):
 			self._populate_history()
 
 	def create_configure_dialog(self, *args):
-		if self.config_getiplayer_location is None:
-			self._uiconfig_getiplayer_location.unselect_all()
-		else:
-			self._uiconfig_getiplayer_location.set_filename(self.config_getiplayer_location)
-		self.config_dialog.set_default_response(gtk.RESPONSE_OK)
-		return self.config_dialog
-
-	def _config_confirmed_cb(self, button):
-		self.config_getiplayer_location = self._uiconfig_getiplayer_location.get_filename()
-		self.attach_getiplayer()
-		self.config_dialog.hide()
+		return self.config.create_configure_dialog(args)
 
 	def _row_expanded_cb(self, tree, iter, path):
 		try:
@@ -355,18 +332,6 @@ class GetIplayerPlugin (totem.Plugin):
 				transform=lambda pb: ensure_image_small(pb, 200, 200))
 		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info))
 
-	@property
-	def config_getiplayer_location(self):
-		stored = self.gconf.get_string(GCONF_KEY + "/getiplayer_location")
-		if stored is not None:
-			return stored
-		else:
-			return which("get-iplayer") # Try to get a default (and store it)
-
-	@config_getiplayer_location.setter
-	def config_getiplayer_location(self, value):
-		return self.gconf.set_string(GCONF_KEY + "/getiplayer_location", value)
-
 def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:
 		return treestore.iter_n_children(branch_iter) > 0
@@ -485,3 +450,47 @@ def which(program):
 		return subprocess.check_output(["which", program], stderr=subprocess.STDOUT).strip()
 	except subprocess.CalledProcessError:
 		return None
+
+class Configuration(object):
+	'''All config-related business.'''
+
+	def __init__(self, builder, onconfigchanged):
+		self.gconf = gconf.client_get_default()
+		self.onconfigchanged = onconfigchanged
+
+		self.config_dialog = builder.get_object('config_dialog')
+		builder.get_object('config_container').show_all()
+
+		builder.get_object("config_cancel_button").connect("clicked", (lambda button: self.config_dialog.hide()))
+		builder.get_object("config_ok_button").connect("clicked", self._config_confirmed_cb)
+
+		self._uiconfig_getiplayer_location = builder.get_object("config_getiplayer_loc")
+		getiplayer_filter = gtk.FileFilter()
+		getiplayer_filter.set_name("get_iplayer executable")
+		getiplayer_filter.add_pattern("get_iplayer")
+		self._uiconfig_getiplayer_location.add_filter(getiplayer_filter)
+
+	def create_configure_dialog(self, *args):
+		if self.config_getiplayer_location is None:
+			self._uiconfig_getiplayer_location.unselect_all()
+		else:
+			self._uiconfig_getiplayer_location.set_filename(self.config_getiplayer_location)
+		self.config_dialog.set_default_response(gtk.RESPONSE_OK)
+		return self.config_dialog
+
+	def _config_confirmed_cb(self, button):
+		self.config_getiplayer_location = self._uiconfig_getiplayer_location.get_filename()
+		self.onconfigchanged()
+		self.config_dialog.hide()
+
+	@property
+	def config_getiplayer_location(self):
+		stored = self.gconf.get_string(GCONF_KEY + "/getiplayer_location")
+		if stored is not None:
+			return stored
+		else:
+			return which("get-iplayer") # Try to get a default (and store it)
+
+	@config_getiplayer_location.setter
+	def config_getiplayer_location(self, value):
+		return self.gconf.set_string(GCONF_KEY + "/getiplayer_location", value)
