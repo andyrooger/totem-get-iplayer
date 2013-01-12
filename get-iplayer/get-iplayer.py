@@ -22,7 +22,9 @@ import totem
 import gobject
 import urllib2
 import gtk
+import gconf
 import threading
+import subprocess
 from collections import defaultdict
 from getiplayer_interface import GetIPlayer
 
@@ -36,6 +38,8 @@ IDXH_NAME = 1
 IDXH_VERSION = 2
 IDXH_MODE = 3
 IDXH_LOCATION = 4
+
+GCONF_KEY = "/apps/totem/plugins/get-iplayer"
 
 class TreeValues(object):
 	def __init__(self, title, loading_node=False, loaded=False, prog_idx=-1):
@@ -60,6 +64,7 @@ class GetIplayerPlugin (totem.Plugin):
 	def __init__ (self):
 		totem.Plugin.__init__ (self)
 		self.totem = None
+		self.gconf = gconf.client_get_default()
 		self.filter_order = ["type", "version", "channel", "category"]
 		self.showing_info = None
 		self._mode_callback_id = None
@@ -67,13 +72,14 @@ class GetIplayerPlugin (totem.Plugin):
 	def activate (self, totem_object):
 		# Build the interface
 		builder = self.load_interface ("get-iplayer.ui", True, totem_object.get_main_window (), self)
-		container = builder.get_object ('getiplayer_top_pane')
+		self._ui_container = builder.get_object ('getiplayer_top_pane')
+		self._ui_container.show_all ()
 
 		# Sidebar
 		progs_store = builder.get_object("getiplayer_progs_store")
-		progs_list = builder.get_object("getiplayer_progs_list")
-		progs_list.connect("row-expanded", self._row_expanded_cb)
-		progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
+		self._ui_progs_list = builder.get_object("getiplayer_progs_list")
+		self._ui_progs_list.connect("row-expanded", self._row_expanded_cb)
+		self._ui_progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
 
 		self._ui_programme_info = builder.get_object("getiplayer_description_pane")
 		self._ui_series = builder.get_object("getiplayer_series_text")
@@ -99,36 +105,54 @@ class GetIplayerPlugin (totem.Plugin):
 		builder.get_object("config_cancel_button").connect("clicked", (lambda button: self.config_dialog.hide()))
 		builder.get_object("config_ok_button").connect("clicked", self._config_confirmed_cb)
 
-		self._config_getiplayer_location = builder.get_object("config_getiplayer_loc")
+		self._uiconfig_getiplayer_location = builder.get_object("config_getiplayer_loc")
 		getiplayer_filter = gtk.FileFilter()
 		getiplayer_filter.set_name("get_iplayer executable")
 		getiplayer_filter.add_pattern("get_iplayer")
-		self._config_getiplayer_location.add_filter(getiplayer_filter)
+		self._uiconfig_getiplayer_location.add_filter(getiplayer_filter)
 
 		self.totem = totem_object
-		container.show_all ()
-		self._ui_programme_info.hide_all()
-		self._ui_history_pane.hide_all()
 
 		# Add the interface to Totem's sidebar only if get_iplayer is accessible, otherwise show error
-		try:
-			self.gip = GetIPlayer("/home/andyrooger/git/get_iplayer/get_iplayer")
-		except OSError:
-			self.totem.action_error("Get iPlayer", "Cannot find get_iplayer. Please install it if you need to and set the location under plugin configuration.")
-			return
+		self.attach_getiplayer()
 
-		self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), container)
-		self._populate_filter_level(progs_list, None)
-		self._populate_history()
 
 	def deactivate (self, totem_object):
 		totem_object.remove_sidebar_page ("get-iplayer")
 
+	def attach_getiplayer(self):
+		location_correct = False
+		if self.config_getiplayer_location is not None:
+			try:
+				self.gip = GetIPlayer(self.config_getiplayer_location)
+			except OSError: pass
+			else:
+				location_correct = True
+		if not location_correct:
+			self.totem.action_error("Get iPlayer", "Cannot find get_iplayer. Please install it if you need to and set the location under plugin configuration.")
+		self.reset_ui(location_correct)
+		return location_correct
+
+	def reset_ui(self, iplayer_attached):
+		self.totem.remove_sidebar_page("get-iplayer")
+		if iplayer_attached:
+			self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), self._ui_container)
+			self._ui_programme_info.hide_all()
+			self._ui_history_pane.hide_all()
+			self._populate_filter_level(self._ui_progs_list, None)
+			self._populate_history()
+
 	def create_configure_dialog(self, *args):
+		if self.config_getiplayer_location is None:
+			self._uiconfig_getiplayer_location.unselect_all()
+		else:
+			self._uiconfig_getiplayer_location.set_filename(self.config_getiplayer_location)
 		self.config_dialog.set_default_response(gtk.RESPONSE_OK)
 		return self.config_dialog
 
 	def _config_confirmed_cb(self, button):
+		self.config_getiplayer_location = self._uiconfig_getiplayer_location.get_filename()
+		self.attach_getiplayer()
 		self.config_dialog.hide()
 
 	def _row_expanded_cb(self, tree, iter, path):
@@ -331,6 +355,18 @@ class GetIplayerPlugin (totem.Plugin):
 				transform=lambda pb: ensure_image_small(pb, 200, 200))
 		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info))
 
+	@property
+	def config_getiplayer_location(self):
+		stored = self.gconf.get_string(GCONF_KEY + "/getiplayer_location")
+		if stored is not None:
+			return stored
+		else:
+			return which("get-iplayer") # Try to get a default (and store it)
+
+	@config_getiplayer_location.setter
+	def config_getiplayer_location(self, value):
+		return self.gconf.set_string(GCONF_KEY + "/getiplayer_location", value)
+
 def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:
 		return treestore.iter_n_children(branch_iter) > 0
@@ -442,3 +478,10 @@ def ensure_image_small(pb, max_width, max_height):
 		return pb.scale_simple(width, height, gtk.gdk.INTERP_BILINEAR)
 	else:
 		return pb
+
+def which(program):
+	'''Finds a program's location based on its name.'''
+	try:
+		return subprocess.check_output(["which", program], stderr=subprocess.STDOUT).strip()
+	except subprocess.CalledProcessError:
+		return None
