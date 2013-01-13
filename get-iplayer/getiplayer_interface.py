@@ -175,9 +175,19 @@ class GetIPlayer(object):
 			args.append(arg)
 		return args
 
-	def _call(self, *vargs, **kwargs):
+	def __call(self, stdout, *vargs, **kwargs):
+		'''Call and return the new process.'''
 		args = self._parse_args(vargs, kwargs)
-		proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+		return subprocess.Popen(args, stdout=stdout)
+
+	def _call_stream(self, stdout, *vargs, **kwargs):
+		'''Call and return whatever stdout was (expects an fd or pipe).'''
+		self.__call(stdout, *vargs, **kwargs)
+		return stdout
+
+	def _call(self, *vargs, **kwargs):
+		'''Calls and returns pending result for output.'''
+		proc = self.__call(subprocess.PIPE, *vargs, **kwargs)
 		def get_result():
 			stdout, stderr = proc.communicate()
 			#print stderr - should already be happening
@@ -254,5 +264,12 @@ class GetIPlayer(object):
 		history = self._call(history="", listformat="(<index>):(<name>):(<episode>):(<versions>):(<mode>):(<filename>)")
 		return history.translate(lambda h: list(parse_history(h, guess_version)))
 
-	def stream_programme(self, index, version="default", mode="best", stream_cmd="totem fd://0 --no-existing-session"):
-		return self._call(index, versions=version, modes=mode, stream="", player=stream_cmd)
+	def stream_programme_to_external(self, index, version="default", mode="best", stream_cmd="totem fd://0 --no-existing-session"):
+		'''Stream a program to an external program's stdin.'''
+		return self._call(index, versions=version, modes=mode, stream="", player=stream_cmd, q="")
+
+	def stream_programme_to_pipe(self, index, version="default", mode="best"):
+		'''Stream a program to the current stdin.'''
+		rfd, wfd = os.pipe()
+		self._call_stream(wfd, index, versions=version, modes=mode, stream="", q="")
+		return rfd

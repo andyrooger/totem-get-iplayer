@@ -170,7 +170,9 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		version = self._ui_version_list.get_model().get_value(selected_version, 0)
 		mode = self._ui_mode_list.get_model().get_value(selected_mode, 0)
-		self.gip.stream_programme(self.showing_info, version, mode)
+		name = self._ui_series.get_text() + " - " + self._ui_episode.get_text()
+		fd = self.gip.stream_programme_to_pipe(self.showing_info, version, mode)
+		self.totem.add_to_playlist_and_play("fd://%s" % fd, name, False)
 
 	def _version_selected_cb(self, version_list, index, info):
 		if self.showing_info != index:
