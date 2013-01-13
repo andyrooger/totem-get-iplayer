@@ -71,6 +71,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self.totem = None
 		self.showing_info = None
 		self._mode_callback_id = None
+		self.has_sidebar = False
 
 	def activate (self, totem_object):
 		# Build the interface
@@ -128,14 +129,19 @@ class GetIplayerPlugin (totem.Plugin):
 		return location_correct
 
 	def reset_ui(self, iplayer_attached):
-		self.totem.remove_sidebar_page("get-iplayer")
 		if iplayer_attached:
-			self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), self._ui_container)
+			if not self.has_sidebar:
+				self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), self._ui_container)
+				self.has_sidebar = True
 			self._ui_programme_info.hide_all()
 			self._ui_history_pane.hide_all()
 			self._ui_progs_list.get_model().clear()
 			self._populate_filter_level(self._ui_progs_list, None)
 			self._populate_history()
+		else:
+			if self.has_sidebar:
+				self.totem.remove_sidebar_page("get-iplayer")
+				self.has_sidebar = False
 
 	def create_configure_dialog(self, *args):
 		return self.config.create_configure_dialog(args)
