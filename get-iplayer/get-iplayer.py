@@ -466,28 +466,48 @@ class Configuration(object):
 		builder.get_object("config_ok_button").connect("clicked", self._config_confirmed_cb)
 
 		self._uiconfig_getiplayer_location = builder.get_object("config_getiplayer_loc")
-		getiplayer_filter = gtk.FileFilter()
-		getiplayer_filter.set_name("get_iplayer executable")
-		getiplayer_filter.add_pattern("get_iplayer")
-		self._uiconfig_getiplayer_location.add_filter(getiplayer_filter)
-
+		self._uiconfig_getiplayer_location.add_filter(self.__get_filter("get_iplayer", "get_iplayer"))
 		self._uiconfig_getiplayer_guess = builder.get_object("config_getiplayer_locdefault")
-		self._uiconfig_getiplayer_guess.connect("toggled", self._getiplayer_guess_clicked_cb)
+		self._uiconfig_getiplayer_guess.connect("toggled",
+			lambda button: self._intelligent_guess_clicked_cb(self._uiconfig_getiplayer_location, button))
+
+		self._uiconfig_flvstreamer_location = builder.get_object("config_flvstreamer_loc")
+		self._uiconfig_flvstreamer_location.add_filter(self.__get_filter("flvstreamer", "flvstreamer"))
+		self._uiconfig_flvstreamer_guess = builder.get_object("config_flvstreamer_locdefault")
+		self._uiconfig_flvstreamer_guess.connect("toggled",
+			lambda button: self._intelligent_guess_clicked_cb(self._uiconfig_flvstreamer_location, button))
+
+		self._uiconfig_ffmpeg_location = builder.get_object("config_ffmpeg_loc")
+		self._uiconfig_ffmpeg_location.add_filter(self.__get_filter("ffmpeg", "ffmpeg"))
+		self._uiconfig_ffmpeg_guess = builder.get_object("config_ffmpeg_locdefault")
+		self._uiconfig_ffmpeg_guess.connect("toggled",
+			lambda button: self._intelligent_guess_clicked_cb(self._uiconfig_ffmpeg_location, button))
 
 	def create_configure_dialog(self, *args):
-		loc = self.config_getiplayer_location
-		has_loc = loc is not None
-		self._uiconfig_getiplayer_location.set_sensitive(has_loc)
-		self._uiconfig_getiplayer_guess.set_active(not has_loc)
-		if has_loc:
-			self._uiconfig_getiplayer_location.set_filename(self.config_getiplayer_location)
-		else:
-			self._uiconfig_getiplayer_location.unselect_all()
+		self._init_ui(self.config_getiplayer_location, self._uiconfig_getiplayer_location, self._uiconfig_getiplayer_guess)
+		self._init_ui(self.config_flvstreamer_location, self._uiconfig_flvstreamer_location, self._uiconfig_flvstreamer_guess)
+		self._init_ui(self.config_ffmpeg_location, self._uiconfig_ffmpeg_location, self._uiconfig_ffmpeg_guess)
+
 		self.config_dialog.set_default_response(gtk.RESPONSE_OK)
 		return self.config_dialog
 
-	def _getiplayer_guess_clicked_cb(self, button):
-		self._uiconfig_getiplayer_location.set_sensitive(not button.get_active())
+	def _init_ui(self, loc, uilocation, uiguess):
+		has_loc = loc is not None
+		uilocation.set_sensitive(has_loc)
+		uiguess.set_active(not has_loc)
+		if has_loc:
+			uilocation.set_filename(loc)
+		else:
+			uilocation.unselect_all()
+
+	def __get_filter(self, name, exename):
+		filter = gtk.FileFilter()
+		filter.set_name(name + " executable")
+		filter.add_pattern(exename)
+		return filter
+
+	def _intelligent_guess_clicked_cb(self, location_box, button):
+		location_box.set_sensitive(not button.get_active())
 
 	def _config_confirmed_cb(self, button):
 		gip = self._uiconfig_getiplayer_location.get_filename()
@@ -495,6 +515,18 @@ class Configuration(object):
 			del self.config_getiplayer_location
 		else:
 			self.config_getiplayer_location = gip
+
+		gip = self._uiconfig_flvstreamer_location.get_filename()
+		if gip is None or self._uiconfig_flvstreamer_guess.get_active():
+			del self.config_flvstreamer_location
+		else:
+			self.config_flvstreamer_location = gip
+
+		gip = self._uiconfig_ffmpeg_location.get_filename()
+		if gip is None or self._uiconfig_ffmpeg_guess.get_active():
+			del self.config_ffmpeg_location
+		else:
+			self.config_ffmpeg_location = gip
 
 		# Commented as it currently results in a message box appearing in the background and locking the UI
 		#if gip is None and not self._uiconfig_getiplayer_guess.get_active():
@@ -521,3 +553,27 @@ class Configuration(object):
 	@config_getiplayer_location.deleter
 	def config_getiplayer_location(self):
 		self.gconf.unset(GCONF_KEY + "/getiplayer_location")
+
+	@property
+	def config_flvstreamer_location(self):
+		return self.gconf.get_string(GCONF_KEY + "/flvstreamer_location")
+
+	@config_flvstreamer_location.setter
+	def config_flvstreamer_location(self, value):
+		self.gconf.set_string(GCONF_KEY + "/flvstreamer_location", value)
+
+	@config_flvstreamer_location.deleter
+	def config_flvstreamer_location(self):
+		self.gconf.unset(GCONF_KEY + "/flvstreamer_location")
+
+	@property
+	def config_ffmpeg_location(self):
+		return self.gconf.get_string(GCONF_KEY + "/ffmpeg_location")
+
+	@config_ffmpeg_location.setter
+	def config_ffmpeg_location(self, value):
+		self.gconf.set_string(GCONF_KEY + "/ffmpeg_location", value)
+
+	@config_ffmpeg_location.deleter
+	def config_ffmpeg_location(self):
+		self.gconf.unset(GCONF_KEY + "/ffmpeg_location")

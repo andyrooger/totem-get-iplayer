@@ -304,6 +304,66 @@ Copyright (C) 2013  Andy Gurden
 							<property name="x-options"></property>
 						</packing>
 					</child>
+					<child>
+						<object class="GtkLabel" id="config_label_flvstreamer_loc">
+							<property name="label">flvstreamer Location</property>
+						</object>
+						<packing>
+							<property name="left_attach">0</property>
+							<property name="top_attach">1</property>
+							<property name="x-options"></property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkFileChooserButton" id="config_flvstreamer_loc">
+							<property name="width-chars">11</property><!-- Size of flvstreamer -->
+						</object>
+						<packing>
+							<property name="left_attach">1</property>
+							<property name="top_attach">1</property>
+							<property name="x-options">GTK_EXPAND|GTK_FILL</property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkToggleButton" id="config_flvstreamer_locdefault">
+							<property name="label">Use Intelligent Guess</property>
+						</object>
+						<packing>
+							<property name="left_attach">2</property>
+							<property name="top-attach">1</property>
+							<property name="x-options"></property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkLabel" id="config_label_ffmpeg_loc">
+							<property name="label">ffmpeg Location</property>
+						</object>
+						<packing>
+							<property name="left_attach">0</property>
+							<property name="top_attach">2</property>
+							<property name="x-options"></property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkFileChooserButton" id="config_ffmpeg_loc">
+							<property name="width-chars">6</property><!-- Size of ffmpeg -->
+						</object>
+						<packing>
+							<property name="left_attach">1</property>
+							<property name="top_attach">2</property>
+							<property name="x-options">GTK_EXPAND|GTK_FILL</property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkToggleButton" id="config_ffmpeg_locdefault">
+							<property name="label">Use Intelligent Guess</property>
+						</object>
+						<packing>
+							<property name="left_attach">2</property>
+							<property name="top-attach">2</property>
+							<property name="x-options"></property>
+						</packing>
+					</child>
 				</object>
 			</child>
 			<child internal-child="action_area">
