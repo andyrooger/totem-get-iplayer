@@ -149,11 +149,20 @@ class GetIplayerPlugin (totem.Plugin):
 	def _row_expanded_cb(self, tree, iter, path):
 		try:
 			self._populate_filter_level(tree, iter)
-			return
 		except ValueError:
-			pass # this is not a filtered level of the tree
-		if tree.get_model().iter_depth(iter) == len(self.config.config_filter_order)-1:
-			self._populate_series_and_episodes(tree, iter)
+			# this is not a filtered level of the tree
+			if tree.get_model().iter_depth(iter) == len(self.config.config_filter_order)-1:
+				self._populate_series_and_episodes(tree, iter)
+
+		# Try to expand so long as there is only one child
+		open_iter = iter
+		treemodel = tree.get_model()
+		while open_iter is not None:
+			if treemodel.iter_n_children(open_iter) == 1:
+				tree.expand_row(treemodel.get_path(open_iter), False)
+				open_iter = treemodel.iter_children(open_iter)
+			else:
+				open_iter = None
 
 	def _row_selection_changed_cb(self, selection):
 		treestore, branch = selection.get_selected()
