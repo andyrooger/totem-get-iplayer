@@ -97,7 +97,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_play.connect("clicked", self._play_clicked_cb)
 		self._ui_history_list.connect("row-activated", self._history_activated_cb)
 
-		self.config = Configuration(builder, self.reset_ui)
+		self.config = Configuration(builder, self.attach_getiplayer)
 		self.totem = totem_object
 
 		# Add the interface to Totem's sidebar only if get_iplayer is accessible, otherwise show error
@@ -109,9 +109,10 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def attach_getiplayer(self):
 		location_correct = False
-		if self.config.config_getiplayer_location is not None:
+		loc = self.config.config_getiplayer_location or which("get-iplayer")
+		if loc is not None:
 			try:
-				self.gip = GetIPlayer(self.config.config_getiplayer_location)
+				self.gip = GetIPlayer(loc)
 			except OSError: pass
 			else:
 				location_correct = True
@@ -470,27 +471,53 @@ class Configuration(object):
 		getiplayer_filter.add_pattern("get_iplayer")
 		self._uiconfig_getiplayer_location.add_filter(getiplayer_filter)
 
+		self._uiconfig_getiplayer_guess = builder.get_object("config_getiplayer_locdefault")
+		self._uiconfig_getiplayer_guess.connect("toggled", self._getiplayer_guess_clicked_cb)
+
 	def create_configure_dialog(self, *args):
-		if self.config_getiplayer_location is None:
-			self._uiconfig_getiplayer_location.unselect_all()
-		else:
+		loc = self.config_getiplayer_location
+		has_loc = loc is not None
+		self._uiconfig_getiplayer_location.set_sensitive(has_loc)
+		self._uiconfig_getiplayer_guess.set_active(not has_loc)
+		if has_loc:
 			self._uiconfig_getiplayer_location.set_filename(self.config_getiplayer_location)
+		else:
+			self._uiconfig_getiplayer_location.unselect_all()
 		self.config_dialog.set_default_response(gtk.RESPONSE_OK)
 		return self.config_dialog
 
+	def _getiplayer_guess_clicked_cb(self, button):
+		self._uiconfig_getiplayer_location.set_sensitive(not button.get_active())
+
 	def _config_confirmed_cb(self, button):
-		self.config_getiplayer_location = self._uiconfig_getiplayer_location.get_filename()
+		gip = self._uiconfig_getiplayer_location.get_filename()
+		if gip is None or self._uiconfig_getiplayer_guess.get_active():
+			del self.config_getiplayer_location
+		else:
+			self.config_getiplayer_location = gip
+
+		# Commented as it currently results in a message box appearing in the background and locking the UI
+		#if gip is None and not self._uiconfig_getiplayer_guess.get_active():
+		#	dlg = gtk.MessageDialog(
+		#		parent=self.config_dialog,
+		#		flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
+		#		buttons=gtk.BUTTONS_OK,
+		#		message_format="You have not selected the location of get_iplayer. Intelligent guessing has been automatically enabled."
+		#	)
+		#	dlg.run()
+		#	dlg.destroy()
+
 		self.onconfigchanged()
 		self.config_dialog.hide()
 
 	@property
 	def config_getiplayer_location(self):
-		stored = self.gconf.get_string(GCONF_KEY + "/getiplayer_location")
-		if stored is not None:
-			return stored
-		else:
-			return which("get-iplayer") # Try to get a default (and store it)
+		return self.gconf.get_string(GCONF_KEY + "/getiplayer_location")
 
 	@config_getiplayer_location.setter
 	def config_getiplayer_location(self, value):
-		return self.gconf.set_string(GCONF_KEY + "/getiplayer_location", value)
+		self.gconf.set_string(GCONF_KEY + "/getiplayer_location", value)
+
+	@config_getiplayer_location.deleter
+	def config_getiplayer_location(self):
+		self.gconf.unset(GCONF_KEY + "/getiplayer_location")

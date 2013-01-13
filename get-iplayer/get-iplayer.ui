@@ -268,8 +268,8 @@ Copyright (C) 2013  Andy Gurden
 			<property name="spacing">12</property>
 			<child>
 				<object class="GtkTable" id="config_table">
-					<property name="n_columns">2</property>
-					<property name="n_rows">2</property>
+					<property name="n_columns">3</property>
+					<property name="n_rows">1</property>
 					<property name="homogeneous">False</property>
 					<property name="row_spacing">6</property>
 					<property name="column_spacing">6</property>
@@ -285,11 +285,23 @@ Copyright (C) 2013  Andy Gurden
 						</packing>
 					</child>
 					<child>
-						<object class="GtkFileChooserButton" id="config_getiplayer_loc" />
+						<object class="GtkFileChooserButton" id="config_getiplayer_loc">
+							<property name="width-chars">11</property><!-- Size of get_iplayer -->
+						</object>
 						<packing>
 							<property name="left_attach">1</property>
 							<property name="top_attach">0</property>
 							<property name="x-options">GTK_EXPAND|GTK_FILL</property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkToggleButton" id="config_getiplayer_locdefault">
+							<property name="label">Use Intelligent Guess</property>
+						</object>
+						<packing>
+							<property name="left_attach">2</property>
+							<property name="top-attach">0</property>
+							<property name="x-options"></property>
 						</packing>
 					</child>
 				</object>
