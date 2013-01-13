@@ -100,9 +100,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self.config = Configuration(builder, self.attach_getiplayer)
 		self.totem = totem_object
 
-		# Add the interface to Totem's sidebar only if get_iplayer is accessible, otherwise show error
 		self.attach_getiplayer()
-
 
 	def deactivate (self, totem_object):
 		totem_object.remove_sidebar_page ("get-iplayer")
@@ -111,11 +109,15 @@ class GetIplayerPlugin (totem.Plugin):
 		location_correct = False
 		loc = self.config.config_getiplayer_location or which("get-iplayer")
 		if loc is not None:
+			flvstreamerloc = self.config.config_flvstreamer_location or which("flvstreamer")
+			ffmpegloc = self.config.config_ffmpeg_location or which("ffmpeg")
 			try:
-				self.gip = GetIPlayer(loc)
+				self.gip = GetIPlayer(loc, flvstreamerloc, ffmpegloc)
 			except OSError: pass
 			else:
 				location_correct = True
+
+		# Add the interface to Totem's sidebar only if get_iplayer is accessible, otherwise show error
 		if not location_correct:
 			self.totem.action_error("Get iPlayer", "Cannot find get_iplayer. Please install it if you need to and set the location under plugin configuration.")
 		self.reset_ui(location_correct)

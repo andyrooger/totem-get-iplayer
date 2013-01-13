@@ -154,16 +154,21 @@ class PendingResult(object):
 		return PendingResult(hasresult, getresult)
 
 class GetIPlayer(object):
-	def __init__(self, location, output_location="~/.totem-get-iplayer"):
-		self.location = location
+	def __init__(self, location, flvstreamerloc=None, ffmpegloc=None, output_location="~/.totem-get-iplayer"):
+		self.stock_vargs = [location]
+		self.stock_kwargs = {}
+		if flvstreamerloc is not None:
+			self.stock_kwargs["flvstreamer"] = flvstreamerloc
+		if ffmpegloc is not None:
+			self.stock_kwargs["ffmpeg"] = ffmpegloc
 		self.recordings = {}
 		self._version_result = self.get_filters("version")
 		self.output_location = os.path.abspath(os.path.expanduser(output_location))
 
 	def _parse_args(self, vargs, kwargs):
-		args = [self.location]
+		args = list(self.stock_vargs)
 		args.extend(str(v) for v in vargs)
-		for k, v in kwargs.iteritems():
+		for k, v in dict(self.stock_kwargs, **kwargs).iteritems():
 			arg = "-" + k if len(k) is 1 else "--" + k
 			if v:
 				arg += (" " if len(k) is 1 else "=") + v
