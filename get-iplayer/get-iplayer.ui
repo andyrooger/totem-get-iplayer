@@ -23,6 +23,7 @@ Copyright (C) 2013  Andy Gurden
 <object class="GtkTreeStore" id="getiplayer_progs_store">
 	<columns>
 		<column type="gchararray"/><!--Title-->
+		<column type="gchararray"/><!--Display Name-->
 		<column type="gboolean"/><!--Is this a loading node-->
 		<column type="gboolean"/><!--Has this been fully loaded before (in case it loads empty)-->
 		<column type="gint"/><!--Programme Index -->
@@ -71,7 +72,7 @@ Copyright (C) 2013  Andy Gurden
 									<child>
 										<object class="GtkCellRendererText" id="getiplayer_title_cell_renderer"/>
 										<attributes>
-											<attribute name="text">0</attribute>
+											<attribute name="text">1</attribute>
 										</attributes>
 									</child>
 								</object>

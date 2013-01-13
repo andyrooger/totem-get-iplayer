@@ -29,9 +29,10 @@ from collections import defaultdict
 from getiplayer_interface import GetIPlayer
 
 IDX_TITLE = 0
-IDX_LOADING_NODE = 1
-IDX_HAS_LOADED = 2
-IDX_PROGRAMME_INDEX = 3
+IDX_DISPLAY = 1
+IDX_LOADING_NODE = 2
+IDX_HAS_LOADED = 3
+IDX_PROGRAMME_INDEX = 4
 
 IDXH_INDEX = 0
 IDXH_NAME = 1
@@ -42,20 +43,21 @@ IDXH_LOCATION = 4
 GCONF_KEY = "/apps/totem/plugins/get-iplayer"
 
 class TreeValues(object):
-	def __init__(self, title, loading_node=False, loaded=False, prog_idx=-1):
+	def __init__(self, title, loading_node=False, loaded=False, prog_idx=-1, info_type=None):
 		self.title = title
+		self.display = title or "(No %s)" % ((info_type or "Name").title(),)
 		self.loading_node = loading_node
 		self.loaded = loaded
 		self.prog_idx = prog_idx
 
 	def __internal(self):
-		return (self.title, self.loading_node, self.loaded, self.prog_idx)
+		return (self.title, self.display, self.loading_node, self.loaded, self.prog_idx)
 
 	def __iter__(self):
 		return iter(self.__internal())
 
 	def __len__(self):
-		return 4
+		return 5
 
 	def __getitem__(self, key):
 		return self.__internal()[key]
@@ -224,12 +226,13 @@ class GetIplayerPlugin (totem.Plugin):
 		if populate_depth >= len(self.filter_order):
 			raise ValueError("This level does not contain filters.")
 		
+		populating = self.filter_order[populate_depth]
+
 		populate = load_branch(progs_list, branch)
 		if populate is None:
 			return
 		def got_filters(filters):
-			populate([(TreeValues(f), []) for f in filters])
-		populating = self.filter_order[populate_depth]
+			populate([(TreeValues(f, info_type=populating), []) for f in filters])
 		active_filters = self._active_filters(progs_store, branch)
 		self.gip.get_filters_and_blanks(populating, **active_filters).on_complete(got_filters)
 
@@ -239,7 +242,7 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		def got_episodes(series):
 			populate([
-				(TreeValues(s), [(TreeValues(ep[1], prog_idx=ep[0]), None) for ep in eps])
+				(TreeValues(s, info_type="series"), [(TreeValues(ep[1], prog_idx=ep[0], info_type="episode"), None) for ep in eps])
 				for s, eps in series.iteritems()
 			])
 		active_filters = self._active_filters(progs_list.get_model(), branch)
