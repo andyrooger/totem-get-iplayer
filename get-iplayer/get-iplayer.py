@@ -42,6 +42,9 @@ IDXH_LOCATION = 4
 
 GCONF_KEY = "/apps/totem/plugins/get-iplayer"
 
+AVAILABLE_FILTERS = ["channel", "category", "type", "version"]
+DEFAULT_FILTERS = ["type", "channel", "category"]
+
 class TreeValues(object):
 	def __init__(self, title, loading_node=False, loaded=False, prog_idx=-1, info_type=None):
 		self.title = title
@@ -66,7 +69,6 @@ class GetIplayerPlugin (totem.Plugin):
 	def __init__ (self):
 		totem.Plugin.__init__ (self)
 		self.totem = None
-		self.filter_order = ["type", "version", "channel", "category"]
 		self.showing_info = None
 		self._mode_callback_id = None
 
@@ -131,6 +133,7 @@ class GetIplayerPlugin (totem.Plugin):
 			self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), self._ui_container)
 			self._ui_programme_info.hide_all()
 			self._ui_history_pane.hide_all()
+			self._ui_progs_list.get_model().clear()
 			self._populate_filter_level(self._ui_progs_list, None)
 			self._populate_history()
 
@@ -143,7 +146,7 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		except ValueError:
 			pass # this is not a filtered level of the tree
-		if tree.get_model().iter_depth(iter) == len(self.filter_order)-1:
+		if tree.get_model().iter_depth(iter) == len(self.config.config_filter_order)-1:
 			self._populate_series_and_episodes(tree, iter)
 
 	def _row_selection_changed_cb(self, selection):
@@ -218,15 +221,15 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def _active_filters(self, progs_store, branch):
 		path = self._filter_at_branch(progs_store, branch)
-		return dict(zip(self.filter_order, path))
+		return dict(zip(self.config.config_filter_order, path))
 
 	def _populate_filter_level(self, progs_list, branch):
 		progs_store = progs_list.get_model()
 		populate_depth = 0 if branch is None else progs_store.iter_depth(branch)+1
-		if populate_depth >= len(self.filter_order):
+		if populate_depth >= len(self.config.config_filter_order):
 			raise ValueError("This level does not contain filters.")
 		
-		populating = self.filter_order[populate_depth]
+		populating = self.config.config_filter_order[populate_depth]
 
 		populate = load_branch(progs_list, branch)
 		if populate is None:
@@ -490,10 +493,34 @@ class Configuration(object):
 		self._uiconfig_ffmpeg_guess.connect("toggled",
 			lambda button: self._intelligent_guess_clicked_cb(self._uiconfig_ffmpeg_location, button))
 
+		self._uiconfig_filters_available = builder.get_object("config_filters_available")
+		self._uiconfig_filters_used = builder.get_object("config_filters_used")
+
+		filter_target = [("FILTER_DRAG", gtk.TARGET_SAME_APP, 0)]
+		self._uiconfig_filters_available.enable_model_drag_source(gtk.gdk.BUTTON1_MASK, filter_target, gtk.gdk.ACTION_MOVE)
+		self._uiconfig_filters_available.enable_model_drag_dest(filter_target, gtk.gdk.ACTION_MOVE)
+		self._uiconfig_filters_available.connect("drag-data-received", self._filter_move_cb)
+		self._uiconfig_filters_available.connect("drag-data-get", self._filter_getdata_cb)
+		self._uiconfig_filters_used.enable_model_drag_source(gtk.gdk.BUTTON1_MASK, filter_target, gtk.gdk.ACTION_MOVE)
+		self._uiconfig_filters_used.enable_model_drag_dest(filter_target, gtk.gdk.ACTION_MOVE)
+		self._uiconfig_filters_used.connect("drag-data-received", self._filter_move_cb)
+		self._uiconfig_filters_used.connect("drag-data-get", self._filter_getdata_cb)
+
 	def create_configure_dialog(self, *args):
 		self._init_ui(self.config_getiplayer_location, self._uiconfig_getiplayer_location, self._uiconfig_getiplayer_guess)
 		self._init_ui(self.config_flvstreamer_location, self._uiconfig_flvstreamer_location, self._uiconfig_flvstreamer_guess)
 		self._init_ui(self.config_ffmpeg_location, self._uiconfig_ffmpeg_location, self._uiconfig_ffmpeg_guess)
+
+		configured_filter_order = self.config_filter_order
+		available_filter_store = self._uiconfig_filters_available.get_model()
+		used_filter_store = self._uiconfig_filters_used.get_model()
+		available_filter_store.clear()
+		used_filter_store.clear()
+		for filter in AVAILABLE_FILTERS:
+			if filter not in configured_filter_order:
+				available_filter_store.append([filter])
+		for filter in configured_filter_order:
+			used_filter_store.append([filter])
 
 		self.config_dialog.set_default_response(gtk.RESPONSE_OK)
 		return self.config_dialog
@@ -512,6 +539,30 @@ class Configuration(object):
 		filter.set_name(name + " executable")
 		filter.add_pattern(exename)
 		return filter
+
+	def _filter_getdata_cb(self, tree, ctx, selection, info, timestamp):
+		model, iter = tree.get_selection().get_selected()
+		if tree is self._uiconfig_filters_used and tree.get_model().iter_n_children(None) <= 1:
+			return # Always need at least one filter used
+		text = model.get_value(iter, 0)
+		selection.set("FILTER_DRAG", 8, text)
+		model.remove(iter)
+
+	def _filter_move_cb(self, tree, ctx, x, y, selection, info, timestamp):
+		drop_info = tree.get_dest_row_at_pos(x, y)
+		model = tree.get_model()
+		data = selection.data
+		if data is None:
+			return
+		if drop_info:
+			path, position = drop_info
+			iter = model.get_iter(path)
+			if position == gtk.TREE_VIEW_DROP_BEFORE or position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE:
+				model.insert_before(iter, [data])
+			else:
+				model.insert_after(iter, [data])
+		else:
+			model.append([data])
 
 	def _intelligent_guess_clicked_cb(self, location_box, button):
 		location_box.set_sensitive(not button.get_active())
@@ -545,6 +596,8 @@ class Configuration(object):
 		#	)
 		#	dlg.run()
 		#	dlg.destroy()
+
+		self.config_filter_order = [row[0] for row in self._uiconfig_filters_used.get_model()]
 
 		self.onconfigchanged()
 		self.config_dialog.hide()
@@ -584,3 +637,12 @@ class Configuration(object):
 	@config_ffmpeg_location.deleter
 	def config_ffmpeg_location(self):
 		self.gconf.unset(GCONF_KEY + "/ffmpeg_location")
+
+	@property
+	def config_filter_order(self):
+		filters = self.gconf.get_list(GCONF_KEY + "/active_filters", gconf.VALUE_STRING)
+		return DEFAULT_FILTERS if filters == [] else filters
+
+	@config_filter_order.setter
+	def config_filter_order(self, value):
+		self.gconf.set_list(GCONF_KEY + "/active_filters", gconf.VALUE_STRING, value)

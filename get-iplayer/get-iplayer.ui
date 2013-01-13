@@ -53,6 +53,18 @@ Copyright (C) 2013  Andy Gurden
 	</columns>
 </object>
 
+<object class="GtkListStore" id="config_filters_available_store">
+	<columns>
+		<column type="gchararray"/>
+	</columns>
+</object>
+
+<object class="GtkListStore" id="config_filters_used_store">
+	<columns>
+		<column type="gchararray"/>
+	</columns>
+</object>
+
 <object class="GtkVPaned" id="getiplayer_top_pane">
 	<child>
 		<object class="GtkVPaned" id="getiplayer_inner_pane">
@@ -365,6 +377,54 @@ Copyright (C) 2013  Andy Gurden
 							<property name="x-options"></property>
 						</packing>
 					</child>
+				</object>
+			</child>
+			<child>
+				<object class="GtkLabel" id="config_filter_selection_label">
+					<property name="label">Filter Selection</property>
+				</object>
+			</child>
+			<child>
+				<object class="GtkHBox" id="config_filters_hbox">
+					<child>
+						<object class="GtkTreeView" id="config_filters_available">
+							<property name="model">config_filters_available_store</property>
+							<property name="headers-visible">True</property>
+							<child>
+								<object class="GtkTreeViewColumn" id="config_filters_available_name">
+									<property name="title">Available Filters</property>
+									<child>
+										<object class="GtkCellRendererText" id="config_filters_available_renderer"/>
+										<attributes>
+											<attribute name="text">0</attribute>
+										</attributes>
+									</child>
+								</object>
+							</child>
+						</object>
+					</child>
+					<child>
+						<object class="GtkTreeView" id="config_filters_used">
+							<property name="model">config_filters_used_store</property>
+							<property name="headers-visible">True</property>
+							<child>
+								<object class="GtkTreeViewColumn" id="config_filters_used_name">
+									<property name="title">Active Filters</property>
+									<child>
+										<object class="GtkCellRendererText" id="config_filters_used_renderer"/>
+										<attributes>
+											<attribute name="text">0</attribute>
+										</attributes>
+									</child>
+								</object>
+							</child>
+						</object>
+					</child>
+				</object>
+			</child>
+			<child>
+				<object class="GtkLabel" id="config_filter_selection_instructions">
+					<property name="label">Drag filters to enable and order them.</property>
 				</object>
 			</child>
 			<child internal-child="action_area">
