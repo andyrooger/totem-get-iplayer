@@ -162,8 +162,16 @@ class GetIPlayer(object):
 		if ffmpegloc is not None:
 			self.stock_kwargs["ffmpeg"] = ffmpegloc
 		self.recordings = {}
-		self._version_result = self.get_filters("version")
+		self._running_processes = {}
 		self.output_location = os.path.abspath(os.path.expanduser(output_location))
+		self._version_result = self.get_filters("version")
+
+	def close(self):
+		for proc in self._running_processes.itervalues():
+			try:
+				proc.terminate()
+			except OSError:
+				sys.stderr.write("Could not terminate process %s" % (proc.pid,))
 
 	def _parse_args(self, vargs, kwargs):
 		args = list(self.stock_vargs)
@@ -175,6 +183,14 @@ class GetIPlayer(object):
 			args.append(arg)
 		return args
 
+	def __add_running_process(self, proc):
+		self._running_processes[proc.pid] = proc
+		def remove_from_running():
+			if proc.pid in self._running_processes:
+				del self._running_processes[proc.pid]
+		return remove_from_running
+		
+
 	def __call(self, stdout, *vargs, **kwargs):
 		'''Call and return the new process.'''
 		args = self._parse_args(vargs, kwargs)
@@ -182,7 +198,9 @@ class GetIPlayer(object):
 
 	def _call_stream(self, stdout, *vargs, **kwargs):
 		'''Call and return whatever stdout was (expects an fd or pipe).'''
-		self.__call(stdout, *vargs, **kwargs)
+		proc = self.__call(stdout, *vargs, **kwargs)
+		procdone = self.__add_running_process(proc)
+		PendingResult(lambda: proc.poll() is not None, proc.wait).on_complete(lambda _: procdone())
 		return stdout
 
 	def _call(self, *vargs, **kwargs):
@@ -192,8 +210,10 @@ class GetIPlayer(object):
 			stdout, stderr = proc.communicate()
 			#print stderr - should already be happening
 			return stdout
-			
-		return PendingResult(lambda: proc.poll() is not None, get_result)
+		procdone = self.__add_running_process(proc)
+		result = PendingResult(lambda: proc.poll() is not None, get_result)
+		result.on_complete(lambda _: procdone())
+		return result
 
 	def _fix_blank_search(self, **kwargs):
 		if "channel" in kwargs and not kwargs["channel"]:

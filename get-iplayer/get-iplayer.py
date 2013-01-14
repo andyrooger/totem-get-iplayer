@@ -75,6 +75,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self.has_sidebar = False
 		self.current_search = None
 		self._current_search_input = None
+		self.gip = None
 
 	def activate (self, totem_object):
 		# Build the interface
@@ -119,6 +120,9 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def deactivate (self, totem_object):
 		totem_object.remove_sidebar_page ("get-iplayer")
+		self.has_sidebar = False
+		if self.gip is not None:
+			self.gip.close()
 
 	def attach_getiplayer(self):
 		location_correct = False
@@ -126,6 +130,8 @@ class GetIplayerPlugin (totem.Plugin):
 		if loc is not None:
 			flvstreamerloc = self.config.config_flvstreamer_location or which("rtmpdump") or which("flvstreamer")
 			ffmpegloc = self.config.config_ffmpeg_location or which("ffmpeg")
+			if self.gip is not None:
+				self.gip.close()
 			try:
 				self.gip = GetIPlayer(loc, flvstreamerloc, ffmpegloc)
 			except OSError: pass
