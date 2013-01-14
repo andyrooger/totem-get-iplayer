@@ -72,6 +72,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self.showing_info = None
 		self._mode_callback_id = None
 		self.has_sidebar = False
+		self.current_search = None
 
 	def activate (self, totem_object):
 		# Build the interface
@@ -85,6 +86,9 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_progs_list.connect("row-expanded", self._row_expanded_cb)
 		self._ui_progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
 
+		self._ui_search_entry = builder.get_object("getiplayer_search_entry")
+		self._ui_search_clear = builder.get_object("getiplayer_search_clear")
+		self._ui_search_search = builder.get_object("getiplayer_search_search")
 		self._ui_programme_info = builder.get_object("getiplayer_description_pane")
 		self._ui_series = builder.get_object("getiplayer_series_text")
 		self._ui_episode = builder.get_object("getiplayer_episode_text")
@@ -98,6 +102,9 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_history_list = builder.get_object("getiplayer_history")
 		self._ui_history_pane = builder.get_object("getiplayer_history_scroll")
 
+		self._ui_search_entry.connect("changed", self._search_changed_cb)
+		self._ui_search_clear.connect("clicked", self._search_clear_clicked_cb)
+		self._ui_search_search.connect("clicked", self._search_clicked_cb)
 		self._ui_record.connect("clicked", self._record_clicked_cb)
 		self._ui_play.connect("clicked", self._play_clicked_cb)
 		self._ui_history_list.connect("row-activated", self._history_activated_cb)
@@ -128,6 +135,11 @@ class GetIplayerPlugin (totem.Plugin):
 		self.reset_ui(location_correct)
 		return location_correct
 
+	def _reset_progtree(self):
+		if self.has_sidebar:
+			self._ui_progs_list.get_model().clear()
+			self._populate_filter_level(self._ui_progs_list, None)
+
 	def reset_ui(self, iplayer_attached):
 		if iplayer_attached:
 			if not self.has_sidebar:
@@ -135,8 +147,7 @@ class GetIplayerPlugin (totem.Plugin):
 				self.has_sidebar = True
 			self._ui_programme_info.hide_all()
 			self._ui_history_pane.hide_all()
-			self._ui_progs_list.get_model().clear()
-			self._populate_filter_level(self._ui_progs_list, None)
+			self._reset_progtree()
 			self._populate_history()
 		else:
 			if self.has_sidebar:
@@ -145,6 +156,22 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def create_configure_dialog(self, *args):
 		return self.config.create_configure_dialog(args)
+
+	def _search_changed_cb(self, entry):
+		has_text = bool(entry.get_text())
+		self._ui_search_clear.set_sensitive(has_text)
+		self._ui_search_search.set_sensitive(has_text)
+
+	def _search_clear_clicked_cb(self, button):
+		self._ui_search_entry.set_text("")
+		self._search_clicked_cb(button)
+
+	def _search_clicked_cb(self, button):
+		self._ui_search_search.set_sensitive(False)
+		old_search = self.current_search
+		self.current_search = self._ui_search_entry.get_text() or None
+		if old_search != self.current_search:
+			self._reset_progtree()
 
 	def _row_expanded_cb(self, tree, iter, path):
 		try:
@@ -252,7 +279,7 @@ class GetIplayerPlugin (totem.Plugin):
 		def got_filters(filters):
 			populate([(TreeValues(f, info_type=populating), []) for f in filters])
 		active_filters = self._active_filters(progs_store, branch)
-		self.gip.get_filters_and_blanks(populating, **active_filters).on_complete(got_filters)
+		self.gip.get_filters_and_blanks(populating, self.current_search, **active_filters).on_complete(got_filters)
 
 	def _populate_series_and_episodes(self, progs_list, branch):
 		populate = load_branch(progs_list, branch)
@@ -264,7 +291,7 @@ class GetIplayerPlugin (totem.Plugin):
 				for s, eps in series.iteritems()
 			])
 		active_filters = self._active_filters(progs_list.get_model(), branch)
-		self.gip.get_episodes(**active_filters).on_complete(got_episodes)
+		self.gip.get_episodes(self.current_search, **active_filters).on_complete(got_episodes)
 
 	def _populate_history(self):
 		def populate_store(history):

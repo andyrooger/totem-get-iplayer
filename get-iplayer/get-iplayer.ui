@@ -70,22 +70,54 @@ Copyright (C) 2013  Andy Gurden
 		<object class="GtkVPaned" id="getiplayer_inner_pane">
 			<property name="border-width">5</property>
 			<child>
-				<object class="GtkScrolledWindow" id="getiplayer_progs_scroll">
-					<property name="hscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
-					<property name="vscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
-					<property name="shadow-type">GTK_SHADOW_IN</property>
+				<object class="GtkVBox" id="getiplayer_progs_area">
+					<property name="border-width">5</property>
+					<property name="homogeneous">False</property>
+					<property name="spacing">6</property>
 					<child>
-						<object class="GtkTreeView" id="getiplayer_progs_list">
-							<property name="model">getiplayer_progs_store</property>
-							<property name="expander-column">getiplayer_title_column</property>
-							<property name="headers-visible">False</property>
+						<object class="GtkHBox" id="getiplayer_search_pane">
+							<property name="border-width">1</property>
+							<property name="homogeneous">False</property>
+							<property name="spacing">2</property>
 							<child>
-								<object class="GtkTreeViewColumn" id="getiplayer_title_column">
+								<object class="GtkEntry" id="getiplayer_search_entry" />
+							</child>
+							<child>
+								<object class="GtkButton" id="getiplayer_search_clear">
+									<property name="label">Clear</property>
+									<property name="sensitive">False</property>
+								</object>
+							</child>
+							<child>
+								<object class="GtkButton" id="getiplayer_search_search">
+									<property name="label">Search</property>
+									<property name="sensitive">False</property>
+								</object>
+							</child>
+						</object>
+						<packing>
+							<property name="expand">False</property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkScrolledWindow" id="getiplayer_progs_scroll">
+							<property name="hscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+							<property name="vscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
+							<property name="shadow-type">GTK_SHADOW_IN</property>
+							<child>
+								<object class="GtkTreeView" id="getiplayer_progs_list">
+									<property name="model">getiplayer_progs_store</property>
+									<property name="expander-column">getiplayer_title_column</property>
+									<property name="headers-visible">False</property>
 									<child>
-										<object class="GtkCellRendererText" id="getiplayer_title_cell_renderer"/>
-										<attributes>
-											<attribute name="text">1</attribute>
-										</attributes>
+										<object class="GtkTreeViewColumn" id="getiplayer_title_column">
+											<child>
+												<object class="GtkCellRendererText" id="getiplayer_title_cell_renderer"/>
+												<attributes>
+													<attribute name="text">1</attribute>
+												</attributes>
+											</child>
+										</object>
 									</child>
 								</object>
 							</child>

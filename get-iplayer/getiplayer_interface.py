@@ -205,9 +205,9 @@ class GetIPlayer(object):
 		return kwargs
 
 
-	def get_filters_and_blanks(self, filter_type, type="all", channel=".*", category=".*", version=".*"):
-		normal_filters = self.get_filters(filter_type, type, channel, category, version)
-		missing_filters = self.count_missing_attrib(filter_type, type, channel, category, version)
+	def get_filters_and_blanks(self, filter_type, search=None, type="all", channel=".*", category=".*", version=".*"):
+		normal_filters = self.get_filters(filter_type, search, type, channel, category, version)
+		missing_filters = self.count_missing_attrib(filter_type, search, type, channel, category, version)
 		def complete_filters():
 			filters = normal_filters.get_result()
 			if missing_filters.get_result() > 0:
@@ -215,31 +215,31 @@ class GetIPlayer(object):
 			return filters
 		return PendingResult(lambda: normal_filters.has_result() and missing_filters.has_result(), complete_filters)
 
-	def get_filters(self, filter_type, type="all", channel=".*", category=".*", version=".*"):
+	def get_filters(self, filter_type, search=None, type="all", channel=".*", category=".*", version=".*"):
 		if filter_type == "category":
 			filter_type = "categories"
 		if filter_type == "version":
 			filter_type = "versions"
 		fixed_filtering = self._fix_blank_search(type=type, channel=channel, category=category, version=version)
-		filters = self._call(list=filter_type, **fixed_filtering)
+		filters = self._call(*([search] if search else []), list=filter_type, **fixed_filtering)
 		available_filters = filters.translate(lambda fs: list(parse_listings(fs)))
 		if filter_type == "versions":
 			return available_filters.translate(parse_versions)
 		else:
 			return available_filters
 
-	def count_missing_attrib(self, blankattrib, type="all", channel=".*", category=".*", version=".*"):
+	def count_missing_attrib(self, blankattrib, search=None, type="all", channel=".*", category=".*", version=".*"):
 		'''Counts the number of programmes with the given attribute blank, but that fit the other filters.'''
 		if blankattrib == "type" or blankattrib == "version":
 			return PendingResult(lambda: True, lambda: 0) # Don't have an option to exclude these, but I don't think you can have blank types
 		exclude = {}
 		exclude["exclude-"+blankattrib] = ".+"
-		blank = self._call(type=type, channel=channel, category=category, **exclude)
+		blank = self._call(*([search] if search else []), type=type, channel=channel, category=category, **exclude)
 		return blank.translate(parse_match_count)
 
-	def get_episodes(self, type="all", channel=".*", category=".*", version=".*"):
+	def get_episodes(self, search=None, type="all", channel=".*", category=".*", version=".*"):
 		fixed_filtering = self._fix_blank_search(type=type, channel=channel, category=category, version=version)
-		episodes = self._call(tree="", listformat="<index>: (<episodenum>) <episode>", **fixed_filtering)
+		episodes = self._call(*([search] if search else []), tree="", listformat="<index>: (<episodenum>) <episode>", **fixed_filtering)
 		return episodes.translate(parse_episodes)
 
 	def get_programme_info(self, index, availableversions=None):
