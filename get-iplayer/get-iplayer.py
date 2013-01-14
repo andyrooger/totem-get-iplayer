@@ -323,26 +323,20 @@ class GetIplayerPlugin (totem.Plugin):
 	def _convert_search_terms(self, terms):
 		st = self.config.config_search_type
 		if st == "word":
-			#(?=...)
-			terms = re.escape(terms)
 			words = terms.split()
-			return ''.join(r"(?=.*(^|\s)+" + word + "($|\s)+.*)" for word in words)
+			return ''.join(r"(?=.*(^|\s)+" + re.escape(word) + r"($|\s)+)" for word in words)
 		elif st == "wildcard":
-			# Should be split up by words
-			# Normal word should search for whole word - e.g. Bob
-			# Single * can be any number of words - e.g. *
-			# Word with * can be a single word with anything where the * is - e.g. garden*
+			# Should be split up by words, no particular order for words
+			# Normal word should search for whole word
+			# Single * can be ignored, searches for anything or nothing
+			# Word with * can be a single word with anything where the * is - e.g. garden*=gardening or garden etc
 			words = terms.split()
 			regex_words = []
 			for word in words:
-				if word == "*":
-					regex_words.append(r".*")
-				else:
+				if re.search(r"[^\*]+", word) is not None: # not just ****
 					word = re.escape(word)
 					regex_words.append(word.replace(r"\*", r"[^\s]*"))
-			regex = r"\s+".join(regex_words)
-			regex = regex.replace(r"\s+.*\s+", ".*") # TODO: Falls down if the pattern contained two separate full word *s
-			return r"(^|\s)+" + regex + r"($|\s)+"
+			return ''.join(r"(?=.*(^|\s)+" + word + r"($|\s)+)" for word in regex_words)
 		elif st == "regex":
 			# Exact search with regex
 			return terms
