@@ -124,7 +124,7 @@ class GetIplayerPlugin (totem.Plugin):
 		location_correct = False
 		loc = self.config.config_getiplayer_location or which("get-iplayer")
 		if loc is not None:
-			flvstreamerloc = self.config.config_flvstreamer_location or which("flvstreamer")
+			flvstreamerloc = self.config.config_flvstreamer_location or which("rtmpdump") or which("flvstreamer")
 			ffmpegloc = self.config.config_ffmpeg_location or which("ffmpeg")
 			try:
 				self.gip = GetIPlayer(loc, flvstreamerloc, ffmpegloc)
@@ -553,7 +553,7 @@ class Configuration(object):
 			lambda button: self._intelligent_guess_clicked_cb(self._uiconfig_getiplayer_location, button))
 
 		self._uiconfig_flvstreamer_location = builder.get_object("config_flvstreamer_loc")
-		self._uiconfig_flvstreamer_location.add_filter(self.__get_filter("flvstreamer", "flvstreamer"))
+		self._uiconfig_flvstreamer_location.add_filter(self.__get_filter("Streamer", "rtmpdump", "flvstreamer"))
 		self._uiconfig_flvstreamer_guess = builder.get_object("config_flvstreamer_locdefault")
 		self._uiconfig_flvstreamer_guess.connect("toggled",
 			lambda button: self._intelligent_guess_clicked_cb(self._uiconfig_flvstreamer_location, button))
@@ -614,10 +614,11 @@ class Configuration(object):
 		else:
 			uilocation.unselect_all()
 
-	def __get_filter(self, name, exename):
+	def __get_filter(self, name, *exenames):
 		filter = gtk.FileFilter()
 		filter.set_name(name + " executable")
-		filter.add_pattern(exename)
+		for exename in exenames:
+			filter.add_pattern(exename)
 		return filter
 
 	def _filter_getdata_cb(self, tree, ctx, selection, info, timestamp):

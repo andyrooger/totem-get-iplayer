@@ -372,7 +372,7 @@ Copyright (C) 2013  Andy Gurden
 					</child>
 					<child>
 						<object class="GtkLabel" id="config_label_flvstreamer_loc">
-							<property name="label">flvstreamer Location</property>
+							<property name="label">Streamer Location</property>
 						</object>
 						<packing>
 							<property name="left_attach">0</property>
