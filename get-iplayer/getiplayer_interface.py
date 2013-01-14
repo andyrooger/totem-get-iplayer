@@ -24,6 +24,7 @@ import sys
 import re
 import threading
 import subprocess
+import signal
 import os.path
 
 RE_LISTING_ENTRY = re.compile(r"^(.+) \((\d+?)\)$", re.MULTILINE)
@@ -168,10 +169,11 @@ class GetIPlayer(object):
 
 	def close(self):
 		for proc in self._running_processes.itervalues():
-			try:
-				proc.terminate()
-			except OSError:
-				sys.stderr.write("Could not terminate process %s" % (proc.pid,))
+			if proc.poll() is None:
+				try:
+					os.killpg(proc.pid, signal.SIGKILL)
+				except OSError:
+					sys.stderr.write("Could not terminate process %s" % (proc.pid,))
 
 	def _parse_args(self, vargs, kwargs):
 		args = list(self.stock_vargs)
@@ -194,11 +196,12 @@ class GetIPlayer(object):
 	def __call(self, stdout, *vargs, **kwargs):
 		'''Call and return the new process.'''
 		args = self._parse_args(vargs, kwargs)
-		return subprocess.Popen(args, stdout=stdout)
+		return subprocess.Popen(args, preexec_fn=os.setsid, stdout=stdout)
 
 	def _call_stream(self, stdout, *vargs, **kwargs):
 		'''Call and return whatever stdout was (expects an fd or pipe).'''
 		proc = self.__call(stdout, *vargs, **kwargs)
+		MAIN_STREAM_LIMITER.add_process(proc)
 		procdone = self.__add_running_process(proc)
 		PendingResult(lambda: proc.poll() is not None, proc.wait).on_complete(lambda _: procdone())
 		return stdout
@@ -293,3 +296,27 @@ class GetIPlayer(object):
 		rfd, wfd = os.pipe()
 		self._call_stream(wfd, index, versions=version, modes=mode, stream="", q="")
 		return rfd
+
+class ProcessLimiter(object):
+	'''Limits the number of concurrent processes by killing old ones.'''
+
+	def __init__(self, max_processes, kill=True):
+		self.max_processes = max_processes
+		self.pids = []
+		self.processes = {}
+		self.kill = kill
+
+	def add_process(self, proc):
+		self.pids.append(proc.pid)
+		self.processes[proc.pid] = proc
+		if len(self.pids) > self.max_processes:
+			removed = self.pids.pop(0)
+			removed_proc = self.processes[removed]
+			del self.processes[removed]
+			if removed_proc.poll() is None:
+				try:
+					os.killpg(removed_proc.pid, signal.SIGKILL)
+				except OSError as exc:
+					sys.stderr.write("Could not terminate process %s" % (removed_proc.pid,))
+
+MAIN_STREAM_LIMITER = ProcessLimiter(1)
