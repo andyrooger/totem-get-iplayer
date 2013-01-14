@@ -65,6 +65,27 @@ Copyright (C) 2013  Andy Gurden
 	</columns>
 </object>
 
+<object class="GtkListStore" id="config_search_type_store">
+	<columns>
+		<column type="gchararray"/><!-- Display name -->
+		<column type="gchararray"/><!-- Internal name -->
+	</columns>
+	<data>
+		<row>
+			<col id="0">Whole Word</col>
+			<col id="1">word</col>
+		</row>
+		<row>
+			<col id="0">Wildcard (with *)</col>
+			<col id="1">wildcard</col>
+		</row>
+		<row>
+			<col id="0">Regular Expression</col>
+			<col id="1">regex</col>
+		</row>
+	</data>
+</object>
+
 <object class="GtkVPaned" id="getiplayer_top_pane">
 	<child>
 		<object class="GtkVPaned" id="getiplayer_inner_pane">
@@ -408,6 +429,29 @@ Copyright (C) 2013  Andy Gurden
 							<property name="top-attach">2</property>
 							<property name="x-options"></property>
 						</packing>
+					</child>
+				</object>
+			</child>
+			<child>
+				<object class="GtkHBox" id="config_search_type_pane">
+					<property name="homogeneous">False</property>
+					<property name="border-width">5</property>
+					<property name="spacing">6</property>
+					<child>
+						<object class="GtkLabel" id="config_search_type_label">
+							<property name="label">Search Type</property>
+						</object>
+					</child>
+					<child>
+						<object class="GtkComboBox" id="config_search_type">
+							<property name="model">config_search_type_store</property>
+							<child>
+								<object class="GtkCellRendererText" id="config_search_type_renderer"/>
+								<attributes>
+									<attribute name="text">0</attribute>
+								</attributes>
+							</child>
+						</object>
 					</child>
 				</object>
 			</child>

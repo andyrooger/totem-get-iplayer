@@ -25,6 +25,7 @@ import gtk
 import gconf
 import threading
 import subprocess
+import re
 from collections import defaultdict
 from getiplayer_interface import GetIPlayer
 
@@ -73,6 +74,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._mode_callback_id = None
 		self.has_sidebar = False
 		self.current_search = None
+		self._current_search_input = None
 
 	def activate (self, totem_object):
 		# Build the interface
@@ -146,6 +148,7 @@ class GetIplayerPlugin (totem.Plugin):
 			if not self.has_sidebar:
 				self.totem.add_sidebar_page ("get-iplayer", _("Get iPlayer"), self._ui_container)
 				self.has_sidebar = True
+			self._search_clear_clicked_cb(self._ui_search_clear)
 			self._ui_programme_info.hide_all()
 			self._ui_history_pane.hide_all()
 			self._reset_progtree()
@@ -169,10 +172,11 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def _search_clicked_cb(self, button):
 		self._ui_search_search.set_sensitive(False)
-		old_search = self.current_search
-		self.current_search = self._ui_search_entry.get_text() or None
-		if old_search != self.current_search:
-			self._ui_search_entry.set_tooltip_text("Current Search: %s" % (self.current_search,))
+		old_search = self._current_search_input
+		self._current_search_input = self._ui_search_entry.get_text() or None
+		self.current_search = None if self._current_search_input is None else self._convert_search_terms(self._current_search_input)
+		if old_search != self._current_search_input:
+			self._ui_search_entry.set_tooltip_text("Current Search: %s" % (self._current_search_input,))
 			self._reset_progtree()
 
 	def _row_expanded_cb(self, tree, iter, path):
@@ -315,6 +319,35 @@ class GetIplayerPlugin (totem.Plugin):
 				self._ui_history_pane.show_all()
 
 		self.gip.get_history().on_complete(lambda history: gobject.idle_add(populate_store, history))
+
+	def _convert_search_terms(self, terms):
+		st = self.config.config_search_type
+		if st == "word":
+			#(?=...)
+			terms = re.escape(terms)
+			words = terms.split()
+			return ''.join(r"(?=.*(^|\s)+" + word + "($|\s)+.*)" for word in words)
+		elif st == "wildcard":
+			# Should be split up by words
+			# Normal word should search for whole word - e.g. Bob
+			# Single * can be any number of words - e.g. *
+			# Word with * can be a single word with anything where the * is - e.g. garden*
+			words = terms.split()
+			regex_words = []
+			for word in words:
+				if word == "*":
+					regex_words.append(r".*")
+				else:
+					word = re.escape(word)
+					regex_words.append(word.replace(r"\*", r"[^\s]*"))
+			regex = r"\s+".join(regex_words)
+			regex = regex.replace(r"\s+.*\s+", ".*") # TODO: Falls down if the pattern contained two separate full word *s
+			return r"(^|\s)+" + regex + r"($|\s)+"
+		elif st == "regex":
+			# Exact search with regex
+			return terms
+		else:
+			return terms # On error use regex...
 
 	def _load_info(self, index):
 		self.showing_info = index
@@ -537,6 +570,8 @@ class Configuration(object):
 		self._uiconfig_ffmpeg_guess.connect("toggled",
 			lambda button: self._intelligent_guess_clicked_cb(self._uiconfig_ffmpeg_location, button))
 
+		self._uiconfig_search_type = builder.get_object("config_search_type")
+
 		self._uiconfig_filters_available = builder.get_object("config_filters_available")
 		self._uiconfig_filters_used = builder.get_object("config_filters_used")
 
@@ -554,6 +589,13 @@ class Configuration(object):
 		self._init_ui(self.config_getiplayer_location, self._uiconfig_getiplayer_location, self._uiconfig_getiplayer_guess)
 		self._init_ui(self.config_flvstreamer_location, self._uiconfig_flvstreamer_location, self._uiconfig_flvstreamer_guess)
 		self._init_ui(self.config_ffmpeg_location, self._uiconfig_ffmpeg_location, self._uiconfig_ffmpeg_guess)
+
+		selected_search_type = None
+		search_type_model = self._uiconfig_search_type.get_model()
+		for row in search_type_model:
+			if search_type_model.get_value(row.iter, 1) == self.config_search_type:
+				selected_search_type = row.iter
+		self._uiconfig_search_type.set_active_iter(selected_search_type)
 
 		configured_filter_order = self.config_filter_order
 		available_filter_store = self._uiconfig_filters_available.get_model()
@@ -630,6 +672,9 @@ class Configuration(object):
 		else:
 			self.config_ffmpeg_location = gip
 
+		search_type_iter = self._uiconfig_search_type.get_active_iter()
+		self.config_search_type = self._uiconfig_search_type.get_model().get_value(search_type_iter, 1)
+
 		# Commented as it currently results in a message box appearing in the background and locking the UI
 		#if gip is None and not self._uiconfig_getiplayer_guess.get_active():
 		#	dlg = gtk.MessageDialog(
@@ -690,3 +735,12 @@ class Configuration(object):
 	@config_filter_order.setter
 	def config_filter_order(self, value):
 		self.gconf.set_list(GCONF_KEY + "/active_filters", gconf.VALUE_STRING, value)
+
+	@property
+	def config_search_type(self):
+		st = self.gconf.get_string(GCONF_KEY + "/search_type")
+		return st if st in ["word", "wildcard", "regex"] else "wildcard"
+
+	@config_search_type.setter
+	def config_search_type(self, value):
+		self.gconf.set_string(GCONF_KEY + "/search_type", value)
