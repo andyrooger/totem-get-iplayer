@@ -87,6 +87,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
 
 		self._ui_search_entry = builder.get_object("getiplayer_search_entry")
+		self._ui_search_entry.set_tooltip_text("Current Search: None")
 		self._ui_search_clear = builder.get_object("getiplayer_search_clear")
 		self._ui_search_search = builder.get_object("getiplayer_search_search")
 		self._ui_programme_info = builder.get_object("getiplayer_description_pane")
@@ -171,6 +172,7 @@ class GetIplayerPlugin (totem.Plugin):
 		old_search = self.current_search
 		self.current_search = self._ui_search_entry.get_text() or None
 		if old_search != self.current_search:
+			self._ui_search_entry.set_tooltip_text("Current Search: %s" % (self.current_search,))
 			self._reset_progtree()
 
 	def _row_expanded_cb(self, tree, iter, path):
