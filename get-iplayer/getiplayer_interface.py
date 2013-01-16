@@ -26,13 +26,14 @@ import threading
 import subprocess
 import signal
 import os.path
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 RE_LISTING_ENTRY = re.compile(r"^(.+) \((\d+?)\)$", re.MULTILINE)
 RE_MATCH_TOTAL = re.compile(r"^INFO: (\d+) Matching Programmes$", re.MULTILINE)
 RE_TREE_EPISODE = re.compile(r"^  (\d+?): \((\d*?)\) (.*)$")
 RE_INFO_LINE = re.compile(r"^(.+?):\s+(.+)$", re.MULTILINE)
 RE_HISTORY = re.compile(r"^\((\d+)\):\((.+)\):\((.+)\):\((.+)\):\((.+)\):\((.+)\)$", re.MULTILINE)
+RE_MODE_GROUP = re.compile(r"^([^\d]*?)\d*$")
 
 def parse_listings(input, withcounts=False):
 	listings = RE_LISTING_ENTRY.finditer(input)
@@ -108,6 +109,20 @@ def parse_modes(info, version):
 	modes_size = dict(mode.split("=") for mode in modes_size.split(",")) if modes_size else {}
 	combined = dict(modes_nosize, **modes_size)
 
+	# Combine modes of the same type e.g. flashlow1 and flashlow2 get grouped to flashlow
+	# Only do this if all members of the group are of equal size
+	bygroup = defaultdict(set)
+	for mode, size in combined.iteritems():
+		group = RE_MODE_GROUP.search(mode)
+		group = group.group(1) if group else None # e.g. take flashlow from flashlow2
+		bygroup[group].add((mode, size))
+	groupedwherepossible = {}
+	for group, members in bygroup.iteritems():
+		if len(set(size for mode, size in members)) == 1: # All sizes equal
+			groupedwherepossible[group] = members.pop()[1]
+		else:
+			groupedwherepossible.update(members)
+
 	def size_from_string(asstr):
 		if asstr is None:
 			return 0
@@ -119,7 +134,7 @@ def parse_modes(info, version):
 
 	# And order by the int version of the size string, adding "best" at the top
 	ordered = OrderedDict(best=None)
-	ordered.update(sorted(combined.iteritems(), key=lambda it: -size_from_string(it[1])))
+	ordered.update(sorted(groupedwherepossible.iteritems(), key=lambda it: -size_from_string(it[1])))
 	return ordered
 
 def parse_history(input, guess_versions):
