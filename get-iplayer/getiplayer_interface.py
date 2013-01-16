@@ -26,6 +26,7 @@ import threading
 import subprocess
 import signal
 import os.path
+from collections import OrderedDict
 
 RE_LISTING_ENTRY = re.compile(r"^(.+) \((\d+?)\)$", re.MULTILINE)
 RE_MATCH_TOTAL = re.compile(r"^INFO: (\d+) Matching Programmes$", re.MULTILINE)
@@ -97,6 +98,29 @@ def parse_versions(version_collections):
 		versions.update(vc.split(","))
 	versions.discard("")
 	return list(versions)
+
+def parse_modes(info, version):
+	'''Parse modes from the object returned from get_programme_info()'''
+	# Combine modes with size and without to create a dictionary of all modes (with sizes where we have them)
+	modes_nosize = info.get("modes", {}).get(version, "")
+	modes_nosize = {mode: None for mode in modes_nosize.split(",")} if modes_nosize else {}
+	modes_size = info.get("modesizes", {}).get(version, "")
+	modes_size = dict(mode.split("=") for mode in modes_size.split(",")) if modes_size else {}
+	combined = dict(modes_nosize, **modes_size)
+
+	def size_from_string(asstr):
+		if asstr is None:
+			return 0
+		elif asstr.endswith("MB"):
+			return int(asstr[:-2])
+		else:
+			sys.stderr.write("Unrecognised mode size string: %s" % (asstr,))
+			return 0
+
+	# And order by the int version of the size string, adding "best" at the top
+	ordered = OrderedDict(best=None)
+	ordered.update(sorted(combined.iteritems(), key=lambda it: -size_from_string(it[1])))
+	return ordered
 
 def parse_history(input, guess_versions):
 	for match in RE_HISTORY.finditer(input):

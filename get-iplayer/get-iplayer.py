@@ -27,7 +27,7 @@ import threading
 import subprocess
 import re
 from collections import defaultdict
-from getiplayer_interface import GetIPlayer
+from getiplayer_interface import GetIPlayer, parse_modes
 
 IDX_TITLE = 0
 IDX_DISPLAY = 1
@@ -241,16 +241,8 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		version = version_list.get_model().get_value(selected, 0)
 		self._ui_mode_list.get_model().clear()
-		modesizes = []
-		modes = info.get("modesizes", {}).get(version, "")
-		if modes:
-			modesizes = [mode.split("=") for mode in modes.split(",")]
-		else:
-			modes = info.get("modes", {}).get(version, "")
-			if modes:
-				modesizes = [(mode, None) for mode in modes.split(",")]
-		modesizes.insert(0, ("best", None))
-		for mode, size in modesizes:
+		modesizes = parse_modes(info, version)
+		for mode, size in modesizes.iteritems():
 			display = mode if size is None else "%s (%s)" % (mode, size)
 			self._ui_mode_list.get_model().append([mode, display])
 		self._ui_mode_list.set_active(0)
