@@ -217,6 +217,8 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		version = self._ui_version_list.get_model().get_value(selected_version, 0)
 		mode = self._ui_mode_list.get_model().get_value(selected_mode, 0)
+		if not mode:
+			return # Loading
 		self.gip.record_programme(self.showing_info, None, version, mode).on_complete(lambda _: self._populate_history())
 		self._populate_history()
 
@@ -229,6 +231,8 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		version = self._ui_version_list.get_model().get_value(selected_version, 0)
 		mode = self._ui_mode_list.get_model().get_value(selected_mode, 0)
+		if not mode:
+			return # Loading
 		name = self._ui_series.get_text() + " - " + self._ui_episode.get_text()
 		fd = self.gip.stream_programme_to_pipe(self.showing_info, version, mode)
 		self.totem.add_to_playlist_and_play("fd://%s" % fd, name, False)
@@ -240,12 +244,23 @@ class GetIplayerPlugin (totem.Plugin):
 		if selected is None:
 			return
 		version = version_list.get_model().get_value(selected, 0)
+		self._ui_mode_list.set_sensitive(False)
 		self._ui_mode_list.get_model().clear()
-		modesizes = parse_modes(info, version)
-		for mode, size in modesizes.iteritems():
-			display = mode if size is None else "%s (%s)" % (mode, size)
-			self._ui_mode_list.get_model().append([mode, display])
+		self._ui_mode_list.get_model().append(["", "Loading..."])
 		self._ui_mode_list.set_active(0)
+
+		def got_modes(modes):
+			if version_list.get_model().get_value(selected, 0) != version or self.showing_info != index:
+				return
+			self._ui_mode_list.get_model().clear()
+			moderates = ((mode, int(modeinfo["bitrate"]) if modeinfo.get("bitrate", "") else 0) for mode, modeinfo in modes.iteritems())
+			for mode, bitrate in sorted(moderates, key=lambda m:m[1]):
+				display = "%s (%skbps)" % (mode, bitrate) if bitrate else mode
+				self._ui_mode_list.get_model().append([mode, display])
+			self._ui_mode_list.set_active(0)
+			self._ui_mode_list.set_sensitive(True)
+
+		self.gip.get_stream_info(index, version).on_complete(got_modes)
 
 	def _history_activated_cb(self, treeview, path, column):
 		treemodel = treeview.get_model()
