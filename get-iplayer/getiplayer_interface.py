@@ -34,6 +34,7 @@ RE_TREE_EPISODE = re.compile(r"^  (\d+?): \((\d*?)\) (.*)$")
 RE_INFO_LINE = re.compile(r"^(.+?):\s+(.+)$", re.MULTILINE)
 RE_HISTORY = re.compile(r"^\((\d+)\):\((.+)\):\((.+)\):\((.+)\):\((.+)\):\((.+)\)$", re.MULTILINE)
 RE_MODE_GROUP = re.compile(r"^([^\d]*?)\d*$")
+RE_STREAMINFO_LINE = re.compile(r"^([a-zA-Z]+):\s+(.*)$")
 
 def parse_listings(input, withcounts=False):
 	listings = RE_LISTING_ENTRY.finditer(input)
@@ -92,6 +93,22 @@ def parse_info(input, versions):
 		else:
 			clean_info[k] = v
 	return clean_info
+
+def parse_streaminfo(input):
+	streaminfo = defaultdict(dict)
+	streamtitle = None
+	for line in input.splitlines():
+		parsed = RE_STREAMINFO_LINE.search(line)
+		if parsed:
+			key, value = parsed.groups()
+			value = value.strip() # key will already be stripped, but value may have newline
+			if key == "stream":
+				streamtitle = value
+			elif streamtitle is not None:
+				streaminfo[streamtitle][key] = value
+		else:
+			streamtitle = None # Blank line, separates sections
+	return streaminfo
 
 def parse_versions(version_collections):
 	versions = set()
@@ -313,6 +330,29 @@ class GetIPlayer(object):
 			return self._version_result.then(lambda vs: self.get_programme_info(index, vs))
 		info = self._call(index, info="", versions=",".join(availableversions))
 		return info.translate(lambda i: parse_info(i, availableversions))
+
+	def get_stream_info(self, index, version):
+		info = self._call(index, version=version, streaminfo="")
+		return info.translate(parse_streaminfo)
+
+	def get_programme_info_and_streams(self, index, availableversions=None):
+		maininfo = self.get_programme_info(index, availableversions)
+		def get_info_and_version_streams(info):
+			versions = info.get("versions", "").split(",")
+			versionstreams = {
+				version: self.get_stream_info(index, version)
+				for version in versions
+				if version
+			}
+			def hasresult():
+				return all(s.has_result() for s in versionstreams.itervalues())
+			def getresult():
+				streamresults = {
+					version: stream.get_result() for version, stream in versionstreams.iteritems()
+				}
+				return dict(info, streams = streamresults)
+			return PendingResult(hasresult, getresult)
+		return maininfo.then(get_info_and_version_streams)
 
 	def record_programme(self, index, displayname=None, version="default", mode="best"):
 		if displayname is None:
