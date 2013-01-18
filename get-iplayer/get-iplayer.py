@@ -249,9 +249,9 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_mode_list.get_model().append(["", "Loading..."])
 		self._ui_mode_list.set_active(0)
 
-		def got_modes(modes):
+		def got_modes(modes, version):
 			version_selected = version_list.get_active_iter()
-			if version_list.get_model().get_value(selected, 0) != version or self.showing_info != index:
+			if version_list.get_model().get_value(version_selected, 0) != version or self.showing_info != index:
 				return
 			self._ui_mode_list.get_model().clear()
 			moderates = combine_modes((mode, int(modeinfo["bitrate"]) if modeinfo.get("bitrate", "") else 0) for mode, modeinfo in modes.iteritems())
@@ -261,7 +261,7 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_mode_list.set_active(0)
 			self._ui_mode_list.set_sensitive(True)
 
-		self.gip.get_stream_info(index, version).on_complete(got_modes)
+		self.gip.get_stream_info(index, version).on_complete(lambda modes: gobject.idle_add(got_modes, modes, version))
 
 	def _history_activated_cb(self, treeview, path, column):
 		treemodel = treeview.get_model()
