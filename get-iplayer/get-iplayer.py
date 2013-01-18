@@ -27,7 +27,7 @@ import threading
 import subprocess
 import re
 from collections import defaultdict
-from getiplayer_interface import GetIPlayer, parse_modes
+from getiplayer_interface import GetIPlayer, combine_modes
 
 IDX_TITLE = 0
 IDX_DISPLAY = 1
@@ -250,11 +250,12 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_mode_list.set_active(0)
 
 		def got_modes(modes):
+			version_selected = version_list.get_active_iter()
 			if version_list.get_model().get_value(selected, 0) != version or self.showing_info != index:
 				return
 			self._ui_mode_list.get_model().clear()
-			moderates = ((mode, int(modeinfo["bitrate"]) if modeinfo.get("bitrate", "") else 0) for mode, modeinfo in modes.iteritems())
-			for mode, bitrate in sorted(moderates, key=lambda m:m[1]):
+			moderates = combine_modes((mode, int(modeinfo["bitrate"]) if modeinfo.get("bitrate", "") else 0) for mode, modeinfo in modes.iteritems())
+			for mode, bitrate in sorted(moderates.iteritems(), key=lambda m:-m[1]):
 				display = "%s (%skbps)" % (mode, bitrate) if bitrate else mode
 				self._ui_mode_list.get_model().append([mode, display])
 			self._ui_mode_list.set_active(0)

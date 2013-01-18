@@ -117,6 +117,24 @@ def parse_versions(version_collections):
 	versions.discard("")
 	return list(versions)
 
+def combine_modes(info):
+	'''
+	Combine modes of the same type e.g. flashlow1 and flashlow2 get grouped to flashlow.
+	Only do this if all members of the group have equivalent additional info.
+	'''
+	bygroup = defaultdict(set)
+	for mode, addinfo in info:
+		group = RE_MODE_GROUP.search(mode)
+		group = group.group(1) if group else None # e.g. take flashlow from flashlow2
+		bygroup[group].add((mode, addinfo))
+	groupedwherepossible = {}
+	for group, members in bygroup.iteritems():
+		if len(set(addinfo for mode, addinfo in members)) == 1: # All sizes equal
+			groupedwherepossible[group] = members.pop()[1]
+		else:
+			groupedwherepossible.update(members)
+	return groupedwherepossible
+
 def parse_modes(info, version):
 	'''Parse modes from the object returned from get_programme_info()'''
 	# Combine modes with size and without to create a dictionary of all modes (with sizes where we have them)
@@ -128,17 +146,7 @@ def parse_modes(info, version):
 
 	# Combine modes of the same type e.g. flashlow1 and flashlow2 get grouped to flashlow
 	# Only do this if all members of the group are of equal size
-	bygroup = defaultdict(set)
-	for mode, size in combined.iteritems():
-		group = RE_MODE_GROUP.search(mode)
-		group = group.group(1) if group else None # e.g. take flashlow from flashlow2
-		bygroup[group].add((mode, size))
-	groupedwherepossible = {}
-	for group, members in bygroup.iteritems():
-		if len(set(size for mode, size in members)) == 1: # All sizes equal
-			groupedwherepossible[group] = members.pop()[1]
-		else:
-			groupedwherepossible.update(members)
+	groupedwherepossible = combine_modes(combined.iteritems())
 
 	def size_from_string(asstr):
 		if asstr is None:
