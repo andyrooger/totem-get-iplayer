@@ -88,6 +88,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_progs_list = builder.get_object("getiplayer_progs_list")
 		self._ui_progs_list.connect("row-expanded", self._row_expanded_cb)
 		self._ui_progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
+		self._ui_progs_list.connect("row-activated", self._row_activated_cb)
 
 		self._ui_search_entry = builder.get_object("getiplayer_search_entry")
 		self._ui_search_entry.set_tooltip_text("Current Search: None")
@@ -208,6 +209,12 @@ class GetIplayerPlugin (totem.Plugin):
 		index = None if branch is None else treestore.get_value(branch, IDX_PROGRAMME_INDEX)
 		self._load_info(None if index == -1 else index)
 
+	def _row_activated_cb(self, tree, path, column):
+		row_iter = tree.get_model().get_iter(path)
+		index = tree.get_model().get_value(row_iter, IDX_PROGRAMME_INDEX)
+		if index != -1:
+			self.play_programme(index)
+
 	def _record_clicked_cb(self, button):
 		if self.showing_info is None:
 			return
@@ -234,8 +241,38 @@ class GetIplayerPlugin (totem.Plugin):
 		if not mode:
 			return # Loading
 		name = self._ui_series.get_text() + " - " + self._ui_episode.get_text()
-		fd = self.gip.stream_programme_to_pipe(self.showing_info, version, mode)
+		self.play_programme(self.showing_info, name=name, version=version, mode=mode)
+
+	def play_programme(self, index, name=None, version=None, mode=None):
+		'''
+		Give this the correct information and it will play a programme.
+		With the wrong information it will try and fail somewhere in the streaming.
+		Give no information and it will work it out if it can...
+		'''
+		if name is None or version is None:
+			def got_info(info):
+				newname = name if name is not None else "%s - %s" % (info.get("name", "Unknown name"), info.get("episode", ""))
+				if version is None and self.config.config_preferred_version not in info.get("versions", "").split(","):
+					self.totem.action_error("Get iPlayer", "Preferred version not found for programme %s." % index)
+					return
+				newversion = version if version is not None else self.config.config_preferred_version
+				self.play_programme(index, name=newname, version=newversion, mode=mode)
+			self.gip.get_programme_info(index).on_complete(got_info)
+			return
+		if mode is None:
+			def got_streams(streams):
+				mode_and_bitrate = [(mode, int(stream["bitrate"])) for mode, stream in streams.iteritems() if stream["bitrate"]]
+				if not mode_and_bitrate:
+					return
+				within_acceptable = filter(lambda mb: mb[1] <= self.config.config_preferred_bitrate, mode_and_bitrate)
+				newmode = min(within_acceptable if within_acceptable else mode_and_bitrate, key=lambda mb: (mb[1], mb[0]))[0]
+				self.play_programme(index, name=name, version=version, mode=newmode)
+			self.gip.get_stream_info(index, version).on_complete(got_streams)
+			return
+
+		fd = self.gip.stream_programme_to_pipe(index, version, mode)
 		self.totem.add_to_playlist_and_play("fd://%s" % fd, name, False)
+
 
 	def _version_selected_cb(self, version_list, index, info):
 		if self.showing_info != index:
@@ -794,7 +831,7 @@ class Configuration(object):
 
 	@property
 	def config_preferred_version(self):
-		return self.gconf.get_string(GCONF_KEY + "/preferred_version")
+		return self.gconf.get_string(GCONF_KEY + "/preferred_version") or "default"
 
 	@config_preferred_version.setter
 	def config_preferred_version(self, value):
