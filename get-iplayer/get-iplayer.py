@@ -593,6 +593,13 @@ class Configuration(object):
 		self._uiconfig_filters_used.connect("drag-data-received", self._filter_move_cb)
 		self._uiconfig_filters_used.connect("drag-data-get", self._filter_getdata_cb)
 
+		self._uiconfig_preferred_version = builder.get_object("config_preferred_version")
+		self._uiconfig_preferred_bitrate = builder.get_object("config_preferred_bitrate")
+		self._uiconfig_preferred_bitrate.add_mark(300, gtk.POS_BOTTOM, "low")
+		self._uiconfig_preferred_bitrate.add_mark(500, gtk.POS_BOTTOM, "std")
+		self._uiconfig_preferred_bitrate.add_mark(1200, gtk.POS_BOTTOM, "high")
+		self._uiconfig_preferred_bitrate.add_mark(2500, gtk.POS_BOTTOM, "hd")
+
 	def create_configure_dialog(self, *args):
 		self._init_ui(self.config_getiplayer_location, self._uiconfig_getiplayer_location, self._uiconfig_getiplayer_guess)
 		self._init_ui(self.config_flvstreamer_location, self._uiconfig_flvstreamer_location, self._uiconfig_flvstreamer_guess)
@@ -615,6 +622,14 @@ class Configuration(object):
 				available_filter_store.append([filter])
 		for filter in configured_filter_order:
 			used_filter_store.append([filter])
+
+		self._uiconfig_preferred_version.set_active(0)
+		for row in self._uiconfig_preferred_version.get_model():
+			if row[0] == self.config_preferred_version:
+				self._uiconfig_preferred_version.set_active_iter(row.iter)
+				break
+
+		self._uiconfig_preferred_bitrate.set_value(self.config_preferred_bitrate)
 
 		self.config_dialog.set_default_response(gtk.RESPONSE_OK)
 		return self.config_dialog
@@ -697,6 +712,11 @@ class Configuration(object):
 
 		self.config_filter_order = [row[0] for row in self._uiconfig_filters_used.get_model()]
 
+		version_iter = self._uiconfig_preferred_version.get_active_iter()
+		self.config_preferred_version = self._uiconfig_preferred_version.get_model().get_value(version_iter, 0)
+
+		self.config_preferred_bitrate = self._uiconfig_preferred_bitrate.get_value()
+
 		self.onconfigchanged()
 		self.config_dialog.hide()
 
@@ -753,3 +773,20 @@ class Configuration(object):
 	@config_search_type.setter
 	def config_search_type(self, value):
 		self.gconf.set_string(GCONF_KEY + "/search_type", value)
+
+	@property
+	def config_preferred_version(self):
+		return self.gconf.get_string(GCONF_KEY + "/preferred_version")
+
+	@config_preferred_version.setter
+	def config_preferred_version(self, value):
+		self.gconf.set_string(GCONF_KEY + "/preferred_version", value)
+
+	@property
+	def config_preferred_bitrate(self):
+		pb = self.gconf.get_int(GCONF_KEY + "/preferred_bitrate")
+		return pb if pb > 0 else 300
+
+	@config_preferred_bitrate.setter
+	def config_preferred_bitrate(self, value):
+		self.gconf.set_int(GCONF_KEY + "/preferred_bitrate", int(value))

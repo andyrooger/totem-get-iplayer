@@ -86,6 +86,24 @@ Copyright (C) 2013  Andy Gurden
 	</data>
 </object>
 
+<object class="GtkListStore" id="config_preferred_version_store">
+	<columns>
+		<column type="gchararray" /><!-- Version id -->
+	</columns>
+	<data>
+		<row><col id="0">default</col></row>
+		<row><col id="0">audiodescribed</col></row>
+		<row><col id="0">signed</col></row>
+	</data>
+</object>
+
+<object class="GtkAdjustment" id="config_preferred_bitrate_adjustment">
+	<property name="lower">100</property>
+	<property name="upper">2500</property>
+	<property name="step_increment">10</property>
+	<property name="page_increment">-50</property>
+</object>
+
 <object class="GtkVPaned" id="getiplayer_top_pane">
 	<child>
 		<object class="GtkVPaned" id="getiplayer_inner_pane">
@@ -501,6 +519,70 @@ Copyright (C) 2013  Andy Gurden
 			<child>
 				<object class="GtkLabel" id="config_filter_selection_instructions">
 					<property name="label">Drag filters to enable and order them.</property>
+				</object>
+			</child>
+			<child>
+				<object class="GtkHBox" id="config_preferred_version_pane">
+					<property name="homogeneous">False</property>
+					<property name="border-width">5</property>
+					<property name="spacing">6</property>
+					<child>
+						<object class="GtkLabel" id="config_preferred_version_label">
+							<property name="label">Preferred Version</property>
+						</object>
+					</child>
+					<child>
+						<object class="GtkComboBox" id="config_preferred_version">
+							<property name="model">config_preferred_version_store</property>
+							<property name="active">0</property>
+							<child>
+								<object class="GtkCellRendererText" id="config_preferred_version_renderer"/>
+								<attributes>
+									<attribute name="text">0</attribute>
+								</attributes>
+							</child>
+						</object>
+					</child>
+				</object>
+			</child>
+			<child>
+				<object class="GtkHBox" id="config_preferred_bitrate_pane">
+					<property name="homogeneous">False</property>
+					<property name="border-width">5</property>
+					<property name="spacing">6</property>
+					<child>
+						<object class="GtkLabel" id="config_preferred_bitrate_label">
+							<property name="label">Preferred Bitrate</property>
+							<property name="yalign">0</property>
+						</object>
+						<packing>
+							<property name="fill">False</property>
+							<property name="expand">False</property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkHScale" id="config_preferred_bitrate">
+							<property name="digits">0</property>
+							<property name="draw-value">True</property>
+							<property name="value-pos">GTK_POS_RIGHT</property>
+							<property name="restrict-to-fill-level">False</property>
+							<property name="adjustment">config_preferred_bitrate_adjustment</property>
+						</object>
+						<packing>
+							<property name="fill">True</property>
+							<property name="expand">True</property>
+						</packing>
+					</child>
+					<child>
+						<object class="GtkLabel" id="config_preferred_bitrate_unit_label">
+							<property name="label">kbps</property>
+							<property name="yalign">0</property>
+						</object>
+						<packing>
+							<property name="fill">False</property>
+							<property name="expand">False</property>
+						</packing>
+					</child>
 				</object>
 			</child>
 			<child internal-child="action_area">
