@@ -94,7 +94,7 @@ def parse_info(input, versions):
 			clean_info[k] = v
 	return clean_info
 
-def parse_streaminfo(input):
+def parse_streaminfo(input, includesubtitles=False):
 	streaminfo = defaultdict(dict)
 	streamtitle = None
 	for line in input.splitlines():
@@ -108,6 +108,10 @@ def parse_streaminfo(input):
 				streaminfo[streamtitle][key] = value
 		else:
 			streamtitle = None # Blank line, separates sections
+	if not includesubtitles:
+		for stream in streaminfo.keys():
+			if stream.startswith("subtitle"):
+				del streaminfo[stream]
 	return streaminfo
 
 def parse_versions(version_collections):
@@ -135,7 +139,7 @@ def combine_modes(info):
 			groupedwherepossible.update(members)
 	return groupedwherepossible
 
-def parse_modes(info, version):
+def parse_modes(info, version, includesubtitle=False):
 	'''Parse modes from the object returned from get_programme_info()'''
 	# Combine modes with size and without to create a dictionary of all modes (with sizes where we have them)
 	modes_nosize = info.get("modes", {}).get(version, "")
@@ -160,6 +164,9 @@ def parse_modes(info, version):
 	# And order by the int version of the size string, adding "best" at the top
 	ordered = OrderedDict(best=None)
 	ordered.update(sorted(groupedwherepossible.iteritems(), key=lambda it: -size_from_string(it[1])))
+	for stream in ordered.keys():
+		if stream.startswith("subtitle"):
+			del ordered[stream]
 	return ordered
 
 def parse_history(input, guess_versions):
