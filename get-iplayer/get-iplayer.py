@@ -254,11 +254,23 @@ class GetIplayerPlugin (totem.Plugin):
 			if version_list.get_model().get_value(version_selected, 0) != version or self.showing_info != index:
 				return
 			self._ui_mode_list.get_model().clear()
+			active_mode_iter = None # Will be the closest under or equal to preferred bitrate
+			lowest_mode_iter = None # Used rather than mode_iter at the end in case there were no modes
 			moderates = combine_modes((mode, int(modeinfo["bitrate"]) if modeinfo.get("bitrate", "") else 0) for mode, modeinfo in modes.iteritems())
-			for mode, bitrate in sorted(moderates.iteritems(), key=lambda m:-m[1]):
+			for mode, bitrate in sorted(moderates.iteritems(), key=lambda m:(-m[1], m[0])):
 				display = "%s (%skbps)" % (mode, bitrate) if bitrate else mode
-				self._ui_mode_list.get_model().append([mode, display])
-			self._ui_mode_list.set_active(0)
+				mode_iter = self._ui_mode_list.get_model().append([mode, display])
+				# Only assign first when we get to correct bitrate, and ignore 0 bitrate streams
+				if bitrate != 0:
+					if active_mode_iter is None and bitrate <= self.config.config_preferred_bitrate:
+						active_mode_iter = mode_iter # bitrates decreasing, so we want first one after we pass (or equal) the preference
+					lowest_mode_iter = mode_iter
+			if active_mode_iter is None:
+				active_mode_iter = lowest_mode_iter
+			if active_mode_iter is not None:
+				self._ui_mode_list.set_active_iter(active_mode_iter)
+			else:
+				self._ui_mode_list.set_active(0)
 			self._ui_mode_list.set_sensitive(True)
 
 		self.gip.get_stream_info(index, version).on_complete(lambda modes: gobject.idle_add(got_modes, modes, version))
@@ -413,11 +425,17 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_desc.set_text(info.get("desc", "No description"))
 			self._ui_mode_list.get_model().clear()
 			self._ui_version_list.get_model().clear()
+			active_version_iter = None
 			for version in info.get("versions", "").split(","):
 				if version:
-					self._ui_version_list.get_model().append([version])
+					version_iter = self._ui_version_list.get_model().append([version])
+					if version == self.config.config_preferred_version:
+						active_version_iter = version_iter
 			self._mode_callback_id = self._ui_version_list.connect("changed", self._version_selected_cb, index, info)
-			self._ui_version_list.set_active(0)
+			if active_version_iter is not None:
+				self._ui_version_list.set_active_iter(active_version_iter)
+			else:
+				self._ui_version_list.set_active(0)
 			self._ui_play.set_sensitive(True)
 			if hasduration:
 				self._ui_record.set_sensitive(True)
