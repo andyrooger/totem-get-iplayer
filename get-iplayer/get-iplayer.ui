@@ -163,6 +163,9 @@ Copyright (C) 2013  Andy Gurden
 						</object>
 					</child>
 				</object>
+				<packing>
+					<property name="shrink">False</property>
+				</packing>
 			</child>
 			<child>
 				<object class="GtkVBox" id="getiplayer_description_pane">
@@ -276,8 +279,14 @@ Copyright (C) 2013  Andy Gurden
 						</packing>
 					</child>
 				</object>
+				<packing>
+					<property name="shrink">False</property>
+				</packing>
 			</child>
 		</object>
+		<packing>
+			<property name="shrink">False</property>
+		</packing>
 	</child>
 	<child>
 		<object class="GtkScrolledWindow" id="getiplayer_history_scroll">
@@ -327,6 +336,9 @@ Copyright (C) 2013  Andy Gurden
 				</object>
 			</child>
 		</object>
+		<packing>
+			<property name="shrink">False</property>
+		</packing>
 	</child>
 </object>
 
