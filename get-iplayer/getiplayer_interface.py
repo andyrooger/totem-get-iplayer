@@ -35,6 +35,7 @@ RE_INFO_LINE = re.compile(r"^(.+?):\s+(.+)$", re.MULTILINE)
 RE_HISTORY = re.compile(r"^\((\d+)\):\((.+)\):\((.+)\):\((.+)\):\((.+)\):\((.+)\)$", re.MULTILINE)
 RE_MODE_GROUP = re.compile(r"^([^\d]*?)\d*$")
 RE_STREAMINFO_LINE = re.compile(r"^([a-zA-Z]+):\s+(.*)$")
+RE_SUBTITLE_LOCATION = re.compile(r"^INFO: Downloading Subtitles to '(.*)'$", re.MULTILINE)
 
 def parse_listings(input, withcounts=False):
 	listings = RE_LISTING_ENTRY.finditer(input)
@@ -178,6 +179,14 @@ def parse_history(input, guess_versions):
 			filename = os.path.splitext(filename)[0]
 			version = filename.rsplit("_", 1)[-1]
 		yield (index, name, episode, version, mode, location)
+
+def parse_subtitles(input):
+	'''Try to parse the results from a subtitle retrieve, returning the subtitle file location or None if there is none.'''
+	match = RE_SUBTITLE_LOCATION.search(input)
+	if match:
+		return match.group(1)
+	else:
+		return None
 
 class PendingResult(object):
 	def __init__(self, hasresult, getresult):
@@ -386,10 +395,15 @@ class GetIPlayer(object):
 		return self._call(index, versions=version, modes=mode, stream="", player=stream_cmd, q="")
 
 	def stream_programme_to_pipe(self, index, version="default", mode="best"):
-		'''Stream a program to the current stdin.'''
+		'''Stream a program to a pipe, and return Totem's file descriptor for it.'''
 		rfd, wfd = os.pipe()
 		self._call_stream(wfd, index, versions=version, modes=mode, stream="", q="")
 		return rfd
+
+	def get_subtitles(self, index, version="default"):
+		'''Download subtitles for a program, returning a pending result for the output location or None if there were no subtitles.'''
+		st = self._call(index, output=self.output_location, get="", **{"subtitles-only": ""})
+		return st.translate(parse_subtitles)
 
 class ProcessLimiter(object):
 	'''Limits the number of concurrent processes by killing old ones.'''
