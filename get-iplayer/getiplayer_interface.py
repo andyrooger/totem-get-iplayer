@@ -255,6 +255,9 @@ class GetIPlayer(object):
 				except OSError:
 					sys.stderr.write("Could not terminate process %s" % (proc.pid,))
 
+	def close_main_stream(self):
+		MAIN_STREAM_LIMITER.close()
+
 	def _parse_args(self, vargs, kwargs):
 		args = list(self.stock_vargs)
 		args.extend(str(v) for v in vargs)
@@ -408,11 +411,10 @@ class GetIPlayer(object):
 class ProcessLimiter(object):
 	'''Limits the number of concurrent processes by killing old ones.'''
 
-	def __init__(self, max_processes, kill=True):
+	def __init__(self, max_processes):
 		self.max_processes = max_processes
 		self.pids = []
 		self.processes = {}
-		self.kill = kill
 
 	def add_process(self, proc):
 		self.pids.append(proc.pid)
@@ -421,10 +423,20 @@ class ProcessLimiter(object):
 			removed = self.pids.pop(0)
 			removed_proc = self.processes[removed]
 			del self.processes[removed]
-			if removed_proc.poll() is None:
-				try:
-					os.killpg(removed_proc.pid, signal.SIGKILL)
-				except OSError as exc:
-					sys.stderr.write("Could not terminate process %s" % (removed_proc.pid,))
+			self._kill(removed_proc)
+
+	def _kill(self, proc):
+		if proc.poll() is None:
+			try:
+				os.killpg(proc.pid, signal.SIGKILL)
+			except OSError as exc:
+				sys.stderr.write("Could not terminate process %s" % (proc.pid,))
+
+	def close(self):
+		'''Close the open streams in this limiter.'''
+		for proc in self.processes.values():
+			self._kill(proc)
+		self.pids = []
+		self.processes = {}
 
 MAIN_STREAM_LIMITER = ProcessLimiter(1)

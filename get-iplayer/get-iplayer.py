@@ -119,6 +119,8 @@ class GetIplayerPlugin (totem.Plugin):
 		self.config = Configuration(builder, self.attach_getiplayer)
 		self.totem = totem_object
 
+		self.totem.connect("file-closed", self._file_closed_cb)
+
 		self.attach_getiplayer()
 
 	def deactivate (self, totem_object):
@@ -335,6 +337,9 @@ class GetIplayerPlugin (totem.Plugin):
 		series = treemodel.get_value(treemodel.iter_parent(iter), IDXH_NAME)
 		name = series + " - " + episode
 		self.totem.add_to_playlist_and_play("file://" + file, name, True)
+
+	def _file_closed_cb(self, totem):
+		self.gip.close_main_stream()
 
 	def _filter_at_branch(self, progs_store, branch):
 		node_names = []
