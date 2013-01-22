@@ -108,6 +108,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_history_pane = builder.get_object("getiplayer_history_scroll")
 
 		self._ui_search_entry.connect("changed", self._search_changed_cb)
+		self._ui_search_entry.connect("activate", self._search_activated_cb)
 		self._ui_search_clear.connect("clicked", self._search_clear_clicked_cb)
 		self._ui_search_search.connect("clicked", self._search_clicked_cb)
 		self._ui_record.connect("clicked", self._record_clicked_cb)
@@ -173,6 +174,9 @@ class GetIplayerPlugin (totem.Plugin):
 		has_text = bool(entry.get_text())
 		self._ui_search_clear.set_sensitive(has_text)
 		self._ui_search_search.set_sensitive(has_text)
+
+	def _search_activated_cb(self, entry):
+		self._ui_search_search.clicked()
 
 	def _search_clear_clicked_cb(self, button):
 		self._ui_search_entry.set_text("")
