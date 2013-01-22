@@ -564,7 +564,7 @@ def load_branch(tree, branch_iter, force=False):
 
 def load_image_in_background(image, imageurl, cancelcheck=None, transform=None):
 	def on_complete(pb):
-		if cancelcheck is None or cancelcheck():
+		if pb is None or cancelcheck is None or cancelcheck():
 			return
 		image.set_from_pixbuf(pb)
 
@@ -578,7 +578,7 @@ def load_image_in_background(image, imageurl, cancelcheck=None, transform=None):
 			pb = loader.get_pixbuf()
 		except:
 			pass
-		if transform is not None:
+		if pb is not None and transform is not None:
 			pb = transform(pb)
 		gobject.idle_add(on_complete, pb)
 	threading.Thread(target=load_image).start()
