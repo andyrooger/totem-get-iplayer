@@ -288,7 +288,7 @@ class GetIplayerPlugin (totem.Plugin):
 
 		def got_modes(modes, version):
 			version_selected = version_list.get_active_iter()
-			if version_list.get_model().get_value(version_selected, 0) != version or self.showing_info != index:
+			if version_selected is None or version_list.get_model().get_value(version_selected, 0) != version or self.showing_info != index:
 				return
 			self._ui_mode_list.get_model().clear()
 			active_mode_iter = None # Will be the closest under or equal to preferred bitrate
