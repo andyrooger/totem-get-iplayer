@@ -113,6 +113,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_record.connect("clicked", self._record_clicked_cb)
 		self._ui_play.connect("clicked", self._play_clicked_cb)
 		self._ui_history_list.connect("row-activated", self._history_activated_cb)
+		self._ui_mode_list.connect("changed", self._mode_selected_cb)
 
 		self.config = Configuration(builder, self.attach_getiplayer)
 		self.totem = totem_object
@@ -312,6 +313,14 @@ class GetIplayerPlugin (totem.Plugin):
 
 		self.gip.get_stream_info(index, version).on_complete(lambda modes: gobject.idle_add(got_modes, modes, version))
 
+	def _mode_selected_cb(self, mode_list):
+		mode_iter = mode_list.get_active_iter()
+		selected_mode = None if mode_iter is None else mode_list.get_model().get_value(mode_iter, 0)
+		islive = self._ui_episode.get_text() == "live"
+		self._ui_play.set_sensitive(bool(selected_mode)) # Enabled if we have a valid mode
+		self._ui_record.set_sensitive(bool(selected_mode) and not islive)
+
+
 	def _history_activated_cb(self, treeview, path, column):
 		treemodel = treeview.get_model()
 		iter = treemodel.get_iter(path)
@@ -441,11 +450,9 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_series.set_text(info.get("name", "Unknown name"))
 			self._ui_episode.set_text(info.get("episode", ""))
 			duration = info.get("duration", "Unknown")
-			hasduration = False
 			try:
 				duration = int(duration) # seconds
 				duration = str(duration // 60) + " minutes"
-				hasduration = True
 			except ValueError:
 				# Wasn't a number, try mins:seconds format
 				try:
@@ -455,7 +462,6 @@ class GetIplayerPlugin (totem.Plugin):
 					if seconds >= 30:
 						minutes += 1
 					duration = str(minutes) + " minutes"
-					hasduration = True
 				except ValueError:
 					pass # Leave as it is
 			self._ui_duration.set_text(duration)
@@ -473,9 +479,6 @@ class GetIplayerPlugin (totem.Plugin):
 				self._ui_version_list.set_active_iter(active_version_iter)
 			else:
 				self._ui_version_list.set_active(0)
-			self._ui_play.set_sensitive(True)
-			if hasduration:
-				self._ui_record.set_sensitive(True)
 
 			# Need to load image on another thread
 			load_image_in_background(self._ui_thumb, info["thumbnail"],
