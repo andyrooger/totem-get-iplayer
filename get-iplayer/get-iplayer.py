@@ -480,7 +480,7 @@ class GetIplayerPlugin (totem.Plugin):
 			# Need to load image on another thread
 			load_image_in_background(self._ui_thumb, info["thumbnail"],
 				cancelcheck=lambda: self.showing_info != index,
-				transform=lambda pb: ensure_image_small(pb, 200, 200))
+				transform=lambda pb: ensure_image_small(pb, 150, 100))
 		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info))
 
 def is_branch_loaded(treestore, branch_iter):
