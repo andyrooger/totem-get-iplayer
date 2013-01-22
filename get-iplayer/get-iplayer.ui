@@ -105,8 +105,10 @@ Copyright (C) 2013  Andy Gurden
 </object>
 
 <object class="GtkVPaned" id="getiplayer_top_pane">
+	<property name="position">10000</property>
 	<child>
 		<object class="GtkVPaned" id="getiplayer_inner_pane">
+			<property name="position">10000</property>
 			<property name="border-width">5</property>
 			<child>
 				<object class="GtkVBox" id="getiplayer_progs_area">
@@ -184,12 +186,12 @@ Copyright (C) 2013  Andy Gurden
 									<property name="spacing">6</property>
 									<child>
 										<object class="GtkLabel" id="getiplayer_series_text">
-											<property name="wrap">True</property>
+											<property name="ellipsize">PANGO_ELLIPSIZE_END</property>
 										</object>
 									</child>
 									<child>
 										<object class="GtkLabel" id="getiplayer_episode_text">
-											<property name="wrap">True</property>
+											<property name="ellipsize">PANGO_ELLIPSIZE_END</property>
 										</object>
 									</child>
 									<child>
@@ -198,9 +200,17 @@ Copyright (C) 2013  Andy Gurden
 										</object>
 									</child>
 								</object>
+								<packing>
+									<property name="fill">True</property>
+									<property name="expand">True</property>
+								</packing>
 							</child>
 							<child>
 								<object class="GtkImage" id="getiplayer_thumbnail" />
+								<packing>
+									<property name="fill">False</property>
+									<property name="expand">False</property>
+								</packing>
 							</child>
 						</object>
 						<packing>
@@ -214,15 +224,16 @@ Copyright (C) 2013  Andy Gurden
 							<property name="vscrollbar-policy">GTK_POLICY_AUTOMATIC</property>
 							<property name="shadow-type">GTK_SHADOW_IN</property>
 							<child>
-								<object class="GtkViewport" id="getiplayer_desc_view">
-									<child>
-										<object class="GtkLabel" id="getiplayer_desc_text">
-											<property name="wrap">True</property>
-										</object>
-									</child>
+								<object class="GtkTextView" id="getiplayer_desc_text">
+									<property name="editable">False</property>
+									<property name="wrap-mode">GTK_WRAP_WORD</property>
 								</object>
 							</child>
 						</object>
+						<packing>
+							<property name="fill">True</property>
+							<property name="expand">True</property>
+						</packing>
 					</child>
 					<child>
 						<object class="GtkTable" id="getiplayer_controls">

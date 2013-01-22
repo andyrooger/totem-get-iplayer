@@ -419,7 +419,7 @@ class GetIplayerPlugin (totem.Plugin):
 			self._ui_series.set_text("Loading programme %s..." % index)
 			self._ui_episode.set_text("")
 			self._ui_duration.set_text("")
-			self._ui_desc.set_text("")
+			self._ui_desc.get_buffer().set_text("")
 			self._ui_thumb.clear()
 			if self._mode_callback_id is not None:
 				self._ui_version_list.disconnect(self._mode_callback_id)
@@ -459,7 +459,7 @@ class GetIplayerPlugin (totem.Plugin):
 				except ValueError:
 					pass # Leave as it is
 			self._ui_duration.set_text(duration)
-			self._ui_desc.set_text(info.get("desc", "No description"))
+			self._ui_desc.get_buffer().set_text(info.get("desc", "No description"))
 			self._ui_mode_list.get_model().clear()
 			self._ui_version_list.get_model().clear()
 			active_version_iter = None
