@@ -89,6 +89,8 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_progs_list.connect("row-expanded", self._row_expanded_cb)
 		self._ui_progs_list.get_selection().connect("changed", self._row_selection_changed_cb)
 		self._ui_progs_list.connect("row-activated", self._row_activated_cb)
+		self._ui_progs_refresh = builder.get_object("getiplayer_progs_refresh")
+		self._ui_progs_refresh.connect("clicked", self._refresh_clicked_cb)
 
 		self._ui_search_entry = builder.get_object("getiplayer_search_entry")
 		self._ui_search_entry.set_tooltip_text("Current Search: None")
@@ -221,6 +223,16 @@ class GetIplayerPlugin (totem.Plugin):
 		index = tree.get_model().get_value(row_iter, IDX_PROGRAMME_INDEX)
 		if index != -1:
 			self.play_programme(index)
+
+	def _refresh_clicked_cb(self, button):
+		self._ui_container.set_sensitive(False)
+		oldbuttontext = button.get_label()
+		button.set_label("Refreshing...")
+		def refresh_complete():
+			button.set_label(oldbuttontext)
+			self._ui_container.set_sensitive(True)
+			self.reset_ui(True)
+		self.gip.refresh_cache(False).on_complete(lambda _: gobject.idle_add(refresh_complete))
 
 	def _record_clicked_cb(self, button):
 		if self.showing_info is None:
