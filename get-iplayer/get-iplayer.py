@@ -100,6 +100,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_series = builder.get_object("getiplayer_series_text")
 		self._ui_episode = builder.get_object("getiplayer_episode_text")
 		self._ui_duration = builder.get_object("getiplayer_duration_text")
+		self._ui_expiry = builder.get_object("getiplayer_expiry_text")
 		self._ui_desc = builder.get_object("getiplayer_desc_text")
 		self._ui_thumb = builder.get_object("getiplayer_thumbnail")
 		self._ui_mode_list = builder.get_object("getiplayer_modes")
@@ -444,11 +445,13 @@ class GetIplayerPlugin (totem.Plugin):
 			if self.showing_info != index:
 				return
 			self._ui_programme_info.hide_all()
+			self._ui_programme_info.set_sensitive(False)
 			if index is None:
 				return
 			self._ui_series.set_text("Loading programme %s..." % index)
 			self._ui_episode.set_text("")
 			self._ui_duration.set_text("")
+			self._ui_expiry.set_text("")
 			self._ui_desc.get_buffer().set_text("")
 			self._ui_thumb.clear()
 			if self._mode_callback_id is not None:
@@ -486,6 +489,10 @@ class GetIplayerPlugin (totem.Plugin):
 				except ValueError:
 					pass # Leave as it is
 			self._ui_duration.set_text(duration)
+			timetoexpiry = info.get("expiryrel")
+			if timetoexpiry or "versions" in info:
+				self._ui_programme_info.set_sensitive(True)
+			self._ui_expiry.set_text("Expires %s" % timetoexpiry if timetoexpiry else ('' if "versions" in info else "Expired"))
 			self._ui_desc.get_buffer().set_text(info.get("desc", "No description"))
 			self._ui_mode_list.get_model().clear()
 			self._ui_version_list.get_model().clear()

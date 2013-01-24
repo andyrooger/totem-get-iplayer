@@ -204,8 +204,11 @@ Copyright (C) 2013  Andy Gurden
 										</object>
 									</child>
 									<child>
-										<object class="GtkLabel" id="getiplayer_duration_text">
-											<property name="wrap">True</property>
+										<object class="GtkLabel" id="getiplayer_duration_text" />
+									</child>
+									<child>
+										<object class="GtkLabel" id="getiplayer_expiry_text">
+											<property name="ellipsize">PANGO_ELLIPSIZE_END</property>
 										</object>
 									</child>
 								</object>
