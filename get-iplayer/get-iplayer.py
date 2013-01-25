@@ -26,6 +26,7 @@ import gconf
 import threading
 import subprocess
 import re
+import os
 from collections import defaultdict
 from getiplayer_interface import GetIPlayer, combine_modes
 
@@ -117,6 +118,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self._ui_record.connect("clicked", self._record_clicked_cb)
 		self._ui_play.connect("clicked", self._play_clicked_cb)
 		self._ui_history_list.connect("row-activated", self._history_activated_cb)
+		self._ui_history_list.connect("key-press-event", self._history_keypress_cb)
 		self._ui_mode_list.connect("changed", self._mode_selected_cb)
 
 		self.config = Configuration(builder, self.attach_getiplayer)
@@ -350,6 +352,44 @@ class GetIplayerPlugin (totem.Plugin):
 		series = treemodel.get_value(treemodel.iter_parent(iter), IDXH_NAME)
 		name = series + " - " + episode
 		self.totem.add_to_playlist_and_play("file://" + file, name, True)
+
+	def _history_keypress_cb(self, treeview, event):
+		if "Delete" != gtk.gdk.keyval_name(event.keyval):
+			return False
+
+		treemodel, treeiter = treeview.get_selection().get_selected()
+		if treeiter is None:
+			return True
+		name = treemodel.get_value(treeiter, IDXH_NAME)
+		file = treemodel.get_value(treeiter, IDXH_LOCATION)
+		wholeseries = not file
+
+		dlg = gtk.MessageDialog(
+			parent=self.totem.get_main_window(),
+			flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
+			type=gtk.MESSAGE_WARNING,
+			buttons=gtk.BUTTONS_OK_CANCEL,
+			message_format="You are about to delete the %s; %s. Are you sure you want to do this?" % (
+				"entire series" if wholeseries else "programme",
+				name
+			)
+		)
+		response = dlg.run()
+		dlg.destroy()
+
+		if response != gtk.RESPONSE_OK:
+			return True
+
+		if wholeseries:
+			childiter = treemodel.iter_children(treeiter)
+			while childiter is not None:
+				os.remove(treemodel.get_value(childiter, IDXH_LOCATION))
+				childiter = treemodel.iter_next(childiter)
+		else:
+			os.remove(file)
+		self._populate_history()
+
+		return True
 
 	def _file_closed_cb(self, totem):
 		self.gip.close_main_stream()

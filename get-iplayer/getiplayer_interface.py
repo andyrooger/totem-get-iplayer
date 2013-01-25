@@ -396,7 +396,7 @@ class GetIPlayer(object):
 		return recording
 
 	def get_history(self, guess_version=True):
-		history = self._call_no_refresh(history="", listformat="(<index>):(<name>):(<episode>):(<versions>):(<mode>):(<filename>)")
+		history = self._call_no_refresh(history="", skipdeleted="", listformat="(<index>):(<name>):(<episode>):(<versions>):(<mode>):(<filename>)")
 		return history.translate(lambda h: list(parse_history(h, guess_version)))
 
 	def stream_programme_to_external(self, index, version="default", mode="best", stream_cmd="totem fd://0 --no-existing-session"):
