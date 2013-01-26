@@ -104,6 +104,26 @@ Copyright (C) 2013  Andy Gurden
 	<property name="page_increment">-50</property>
 </object>
 
+<object class="GtkImage" id="gtk-media-record">
+	<property name="stock">gtk-media-record</property>
+</object>
+
+<object class="GtkImage" id="gtk-media-play">
+	<property name="stock">gtk-media-play</property>
+</object>
+
+<object class="GtkImage" id="gtk-refresh">
+	<property name="stock">gtk-refresh</property>
+</object>
+
+<object class="GtkImage" id="gtk-apply">
+	<property name="stock">gtk-apply</property>
+</object>
+
+<object class="GtkImage" id="gtk-clear">
+	<property name="stock">gtk-clear</property>
+</object>
+
 <object class="GtkVPaned" id="getiplayer_top_pane">
 	<property name="position">10000</property>
 	<child>
@@ -121,18 +141,26 @@ Copyright (C) 2013  Andy Gurden
 							<property name="homogeneous">False</property>
 							<property name="spacing">2</property>
 							<child>
+								<object class="GtkButton" id="getiplayer_progs_refresh">
+									<property name="tooltip-text">Refresh</property>
+									<property name="image">gtk-refresh</property>
+								</object>
+							</child>
+							<child>
 								<object class="GtkEntry" id="getiplayer_search_entry" />
 							</child>
 							<child>
 								<object class="GtkButton" id="getiplayer_search_clear">
-									<property name="label">Clear</property>
+									<property name="tooltip-text">Clear</property>
 									<property name="sensitive">False</property>
+									<property name="image">gtk-clear</property>
 								</object>
 							</child>
 							<child>
 								<object class="GtkButton" id="getiplayer_search_search">
-									<property name="label">Search</property>
+									<property name="tooltip-text">Search</property>
 									<property name="sensitive">False</property>
+									<property name="image">gtk-apply</property>
 								</object>
 							</child>
 						</object>
@@ -163,15 +191,6 @@ Copyright (C) 2013  Andy Gurden
 								</object>
 							</child>
 						</object>
-					</child>
-					<child>
-						<object class="GtkButton" id="getiplayer_progs_refresh">
-							<property name="label">Refresh</property>
-						</object>
-						<packing>
-							<property name="fill">False</property>
-							<property name="expand">False</property>
-						</packing>
 					</child>
 				</object>
 				<packing>
@@ -252,18 +271,20 @@ Copyright (C) 2013  Andy Gurden
 							<property name="n-rows">2</property>
 							<property name="n-columns">2</property>
 							<child>
-								<object class="GtkButton" id="getiplayer_record">
-									<property name="label">Record</property>
+								<object class="GtkButton" id="getiplayer_play">
+									<property name="tooltip-text">Play</property>
+									<property name="image">gtk-media-play</property>
 									<property name="sensitive">False</property>
 								</object>
 							</child>
 							<child>
-								<object class="GtkButton" id="getiplayer_play">
-									<property name="label">Play</property>
+								<object class="GtkButton" id="getiplayer_record">
+									<property name="tooltip-text">Record</property>
+									<property name="image">gtk-media-record</property>
 									<property name="sensitive">False</property>
 								</object>
 								<packing>
-									<property name="left_attach">1</property>
+									<property name="top_attach">1</property>
 								</packing>
 							</child>
 							<child>
@@ -277,7 +298,7 @@ Copyright (C) 2013  Andy Gurden
 									</child>
 								</object>
 								<packing>
-									<property name="top_attach">1</property>
+									<property name="left_attach">1</property>
 								</packing>
 							</child>
 							<child>

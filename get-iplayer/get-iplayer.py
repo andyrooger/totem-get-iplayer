@@ -229,10 +229,10 @@ class GetIplayerPlugin (totem.Plugin):
 
 	def _refresh_clicked_cb(self, button):
 		self._ui_container.set_sensitive(False)
-		oldbuttontext = button.get_label()
-		button.set_label("Refreshing...")
+		oldbuttontt = button.get_tooltip_text()
+		button.set_tooltip_text("Refreshing...")
 		def refresh_complete():
-			button.set_label(oldbuttontext)
+			button.set_tooltip_text(oldbuttontt)
 			self._ui_container.set_sensitive(True)
 			self.reset_ui(True)
 		self.gip.refresh_cache(False).on_complete(lambda _: gobject.idle_add(refresh_complete))
