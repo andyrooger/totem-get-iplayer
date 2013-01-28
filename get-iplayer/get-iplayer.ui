@@ -407,237 +407,296 @@ Copyright (C) 2013  Andy Gurden
 			<property name="homogeneous">False</property>
 			<property name="spacing">12</property>
 			<child>
-				<object class="GtkTable" id="config_table">
-					<property name="n_columns">3</property>
-					<property name="n_rows">1</property>
-					<property name="homogeneous">False</property>
-					<property name="row_spacing">6</property>
-					<property name="column_spacing">6</property>
-					<property name="border_width">5</property>
+				<object class="GtkNotebook" id="config_tabs">
 					<child>
-						<object class="GtkLabel" id="config_label_getiplayer_loc">
-							<property name="label">get_iplayer Location</property>
-						</object>
-						<packing>
-							<property name="left_attach">0</property>
-							<property name="top_attach">0</property>
-							<property name="x-options"></property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkFileChooserButton" id="config_getiplayer_loc">
-							<property name="width-chars">11</property><!-- Size of get_iplayer -->
-						</object>
-						<packing>
-							<property name="left_attach">1</property>
-							<property name="top_attach">0</property>
-							<property name="x-options">GTK_EXPAND|GTK_FILL</property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkToggleButton" id="config_getiplayer_locdefault">
-							<property name="label">Use Intelligent Guess</property>
-						</object>
-						<packing>
-							<property name="left_attach">2</property>
-							<property name="top-attach">0</property>
-							<property name="x-options"></property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkLabel" id="config_label_flvstreamer_loc">
-							<property name="label">Streamer Location</property>
-						</object>
-						<packing>
-							<property name="left_attach">0</property>
-							<property name="top_attach">1</property>
-							<property name="x-options"></property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkFileChooserButton" id="config_flvstreamer_loc">
-							<property name="width-chars">11</property><!-- Size of flvstreamer -->
-						</object>
-						<packing>
-							<property name="left_attach">1</property>
-							<property name="top_attach">1</property>
-							<property name="x-options">GTK_EXPAND|GTK_FILL</property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkToggleButton" id="config_flvstreamer_locdefault">
-							<property name="label">Use Intelligent Guess</property>
-						</object>
-						<packing>
-							<property name="left_attach">2</property>
-							<property name="top-attach">1</property>
-							<property name="x-options"></property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkLabel" id="config_label_ffmpeg_loc">
-							<property name="label">ffmpeg Location</property>
-						</object>
-						<packing>
-							<property name="left_attach">0</property>
-							<property name="top_attach">2</property>
-							<property name="x-options"></property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkFileChooserButton" id="config_ffmpeg_loc">
-							<property name="width-chars">6</property><!-- Size of ffmpeg -->
-						</object>
-						<packing>
-							<property name="left_attach">1</property>
-							<property name="top_attach">2</property>
-							<property name="x-options">GTK_EXPAND|GTK_FILL</property>
-						</packing>
-					</child>
-					<child>
-						<object class="GtkToggleButton" id="config_ffmpeg_locdefault">
-							<property name="label">Use Intelligent Guess</property>
-						</object>
-						<packing>
-							<property name="left_attach">2</property>
-							<property name="top-attach">2</property>
-							<property name="x-options"></property>
-						</packing>
-					</child>
-				</object>
-			</child>
-			<child>
-				<object class="GtkHBox" id="config_search_type_pane">
-					<property name="homogeneous">False</property>
-					<property name="border-width">5</property>
-					<property name="spacing">6</property>
-					<child>
-						<object class="GtkLabel" id="config_search_type_label">
-							<property name="label">Search Type</property>
-						</object>
-					</child>
-					<child>
-						<object class="GtkComboBox" id="config_search_type">
-							<property name="model">config_search_type_store</property>
+						<object class="GtkTable" id="config_prefs_tabcontent">
+							<property name="n_columns">3</property>
+							<property name="n_rows">1</property>
+							<property name="homogeneous">False</property>
+							<property name="row_spacing">6</property>
+							<property name="column_spacing">6</property>
+							<property name="border_width">5</property>
 							<child>
-								<object class="GtkCellRendererText" id="config_search_type_renderer"/>
-								<attributes>
-									<attribute name="text">0</attribute>
-								</attributes>
+								<object class="GtkLabel" id="config_preferred_version_label">
+									<property name="label">Preferred Version</property>
+								</object>
+								<packing>
+									<property name="left_attach">0</property>
+									<property name="top_attach">0</property>
+									<property name="x-options"></property>
+									<property name="y-options"></property>
+								</packing>
 							</child>
-						</object>
-					</child>
-				</object>
-			</child>
-			<child>
-				<object class="GtkLabel" id="config_filter_selection_label">
-					<property name="label">Filter Selection</property>
-				</object>
-			</child>
-			<child>
-				<object class="GtkHBox" id="config_filters_hbox">
-					<child>
-						<object class="GtkTreeView" id="config_filters_available">
-							<property name="model">config_filters_available_store</property>
-							<property name="headers-visible">True</property>
 							<child>
-								<object class="GtkTreeViewColumn" id="config_filters_available_name">
-									<property name="title">Available Filters</property>
+								<object class="GtkComboBox" id="config_preferred_version">
+									<property name="model">config_preferred_version_store</property>
+									<property name="active">0</property>
 									<child>
-										<object class="GtkCellRendererText" id="config_filters_available_renderer"/>
+										<object class="GtkCellRendererText" id="config_preferred_version_renderer"/>
 										<attributes>
 											<attribute name="text">0</attribute>
 										</attributes>
 									</child>
 								</object>
+								<packing>
+									<property name="left_attach">1</property>
+									<property name="right_attach">3</property>
+									<property name="top_attach">0</property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkLabel" id="config_preferred_bitrate_label">
+									<property name="label">Preferred Bitrate</property>
+									<property name="yalign">0</property>
+								</object>
+								<packing>
+									<property name="left_attach">0</property>
+									<property name="top_attach">1</property>
+									<property name="x-options"></property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkHScale" id="config_preferred_bitrate">
+									<property name="digits">0</property>
+									<property name="draw-value">True</property>
+									<property name="value-pos">GTK_POS_RIGHT</property>
+									<property name="restrict-to-fill-level">False</property>
+									<property name="adjustment">config_preferred_bitrate_adjustment</property>
+								</object>
+								<packing>
+									<property name="left_attach">1</property>
+									<property name="top_attach">1</property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkLabel" id="config_preferred_bitrate_unit_label">
+									<property name="label">kbps</property>
+									<property name="yalign">0</property>
+								</object>
+								<packing>
+									<property name="left_attach">2</property>
+									<property name="top_attach">1</property>
+									<property name="x-options"></property>
+									<property name="y-options"></property>
+								</packing>
 							</child>
 						</object>
 					</child>
+					<child type="tab">
+						<object class="GtkLabel" id="config_prefs_tab">
+							<property name="label">Stream Preferences</property>
+						</object>
+					</child>
 					<child>
-						<object class="GtkTreeView" id="config_filters_used">
-							<property name="model">config_filters_used_store</property>
-							<property name="headers-visible">True</property>
+						<object class="GtkVBox" id="config_program_search_tabcontent">
+							<property name="homogeneous">False</property>
+							<property name="spacing">12</property>
 							<child>
-								<object class="GtkTreeViewColumn" id="config_filters_used_name">
-									<property name="title">Active Filters</property>
+								<object class="GtkLabel" id="config_filter_selection_label">
+									<property name="label">Filter Selection</property>
+								</object>
+								<packing>
+									<property name="expand">False</property>
+									<property name="fill">False</property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkHBox" id="config_filters_hbox">
 									<child>
-										<object class="GtkCellRendererText" id="config_filters_used_renderer"/>
-										<attributes>
-											<attribute name="text">0</attribute>
-										</attributes>
+										<object class="GtkTreeView" id="config_filters_available">
+											<property name="model">config_filters_available_store</property>
+											<property name="headers-visible">True</property>
+											<child>
+												<object class="GtkTreeViewColumn" id="config_filters_available_name">
+													<property name="title">Available Filters</property>
+													<child>
+														<object class="GtkCellRendererText" id="config_filters_available_renderer"/>
+														<attributes>
+															<attribute name="text">0</attribute>
+														</attributes>
+													</child>
+												</object>
+											</child>
+										</object>
+									</child>
+									<child>
+										<object class="GtkTreeView" id="config_filters_used">
+											<property name="model">config_filters_used_store</property>
+											<property name="headers-visible">True</property>
+											<child>
+												<object class="GtkTreeViewColumn" id="config_filters_used_name">
+													<property name="title">Active Filters</property>
+													<child>
+														<object class="GtkCellRendererText" id="config_filters_used_renderer"/>
+														<attributes>
+															<attribute name="text">0</attribute>
+														</attributes>
+													</child>
+												</object>
+											</child>
+										</object>
 									</child>
 								</object>
 							</child>
-						</object>
-					</child>
-				</object>
-			</child>
-			<child>
-				<object class="GtkLabel" id="config_filter_selection_instructions">
-					<property name="label">Drag filters to enable and order them.</property>
-				</object>
-			</child>
-			<child>
-				<object class="GtkHBox" id="config_preferred_version_pane">
-					<property name="homogeneous">False</property>
-					<property name="border-width">5</property>
-					<property name="spacing">6</property>
-					<child>
-						<object class="GtkLabel" id="config_preferred_version_label">
-							<property name="label">Preferred Version</property>
-						</object>
-					</child>
-					<child>
-						<object class="GtkComboBox" id="config_preferred_version">
-							<property name="model">config_preferred_version_store</property>
-							<property name="active">0</property>
 							<child>
-								<object class="GtkCellRendererText" id="config_preferred_version_renderer"/>
-								<attributes>
-									<attribute name="text">0</attribute>
-								</attributes>
+								<object class="GtkLabel" id="config_filter_selection_instructions">
+									<property name="label">Drag filters to enable and order them.</property>
+								</object>
+								<packing>
+									<property name="expand">False</property>
+									<property name="fill">False</property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkHBox" id="config_search_type_pane">
+									<property name="homogeneous">False</property>
+									<property name="border-width">5</property>
+									<property name="spacing">6</property>
+									<child>
+										<object class="GtkLabel" id="config_search_type_label">
+											<property name="label">Search Type</property>
+										</object>
+									</child>
+									<child>
+										<object class="GtkComboBox" id="config_search_type">
+											<property name="model">config_search_type_store</property>
+											<child>
+												<object class="GtkCellRendererText" id="config_search_type_renderer"/>
+												<attributes>
+													<attribute name="text">0</attribute>
+												</attributes>
+											</child>
+										</object>
+									</child>
+								</object>
+								<packing>
+									<property name="expand">False</property>
+									<property name="fill">False</property>
+								</packing>
 							</child>
 						</object>
 					</child>
-				</object>
-			</child>
-			<child>
-				<object class="GtkHBox" id="config_preferred_bitrate_pane">
-					<property name="homogeneous">False</property>
-					<property name="border-width">5</property>
-					<property name="spacing">6</property>
-					<child>
-						<object class="GtkLabel" id="config_preferred_bitrate_label">
-							<property name="label">Preferred Bitrate</property>
-							<property name="yalign">0</property>
+					<child type="tab">
+						<object class="GtkLabel" id="config_program_search_tab">
+							<property name="label">Search and Filter</property>
 						</object>
-						<packing>
-							<property name="fill">False</property>
-							<property name="expand">False</property>
-						</packing>
 					</child>
 					<child>
-						<object class="GtkHScale" id="config_preferred_bitrate">
-							<property name="digits">0</property>
-							<property name="draw-value">True</property>
-							<property name="value-pos">GTK_POS_RIGHT</property>
-							<property name="restrict-to-fill-level">False</property>
-							<property name="adjustment">config_preferred_bitrate_adjustment</property>
+						<object class="GtkTable" id="config_table">
+							<property name="n_columns">3</property>
+							<property name="n_rows">1</property>
+							<property name="homogeneous">False</property>
+							<property name="row_spacing">6</property>
+							<property name="column_spacing">6</property>
+							<property name="border_width">5</property>
+							<child>
+								<object class="GtkLabel" id="config_label_getiplayer_loc">
+									<property name="label">get_iplayer Location</property>
+								</object>
+								<packing>
+									<property name="left_attach">0</property>
+									<property name="top_attach">0</property>
+									<property name="x-options"></property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkFileChooserButton" id="config_getiplayer_loc">
+									<property name="width-chars">11</property><!-- Size of get_iplayer -->
+								</object>
+								<packing>
+									<property name="left_attach">1</property>
+									<property name="top_attach">0</property>
+									<property name="x-options">GTK_EXPAND|GTK_FILL</property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkToggleButton" id="config_getiplayer_locdefault">
+									<property name="label">Use Intelligent Guess</property>
+								</object>
+								<packing>
+									<property name="left_attach">2</property>
+									<property name="top-attach">0</property>
+									<property name="x-options"></property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkLabel" id="config_label_flvstreamer_loc">
+									<property name="label">Streamer Location</property>
+								</object>
+								<packing>
+									<property name="left_attach">0</property>
+									<property name="top_attach">1</property>
+									<property name="x-options"></property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkFileChooserButton" id="config_flvstreamer_loc">
+									<property name="width-chars">11</property><!-- Size of flvstreamer -->
+								</object>
+								<packing>
+									<property name="left_attach">1</property>
+									<property name="top_attach">1</property>
+									<property name="x-options">GTK_EXPAND|GTK_FILL</property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkToggleButton" id="config_flvstreamer_locdefault">
+									<property name="label">Use Intelligent Guess</property>
+								</object>
+								<packing>
+									<property name="left_attach">2</property>
+									<property name="top-attach">1</property>
+									<property name="x-options"></property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkLabel" id="config_label_ffmpeg_loc">
+									<property name="label">ffmpeg Location</property>
+								</object>
+								<packing>
+									<property name="left_attach">0</property>
+									<property name="top_attach">2</property>
+									<property name="x-options"></property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkFileChooserButton" id="config_ffmpeg_loc">
+									<property name="width-chars">6</property><!-- Size of ffmpeg -->
+								</object>
+								<packing>
+									<property name="left_attach">1</property>
+									<property name="top_attach">2</property>
+									<property name="x-options">GTK_EXPAND|GTK_FILL</property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
+							<child>
+								<object class="GtkToggleButton" id="config_ffmpeg_locdefault">
+									<property name="label">Use Intelligent Guess</property>
+								</object>
+								<packing>
+									<property name="left_attach">2</property>
+									<property name="top-attach">2</property>
+									<property name="x-options"></property>
+									<property name="y-options"></property>
+								</packing>
+							</child>
 						</object>
-						<packing>
-							<property name="fill">True</property>
-							<property name="expand">True</property>
-						</packing>
 					</child>
-					<child>
-						<object class="GtkLabel" id="config_preferred_bitrate_unit_label">
-							<property name="label">kbps</property>
-							<property name="yalign">0</property>
+					<child type="tab">
+						<object class="GtkLabel" id="config_program_locations_tab">
+							<property name="label">Program Locations</property>
 						</object>
-						<packing>
-							<property name="fill">False</property>
-							<property name="expand">False</property>
-						</packing>
 					</child>
 				</object>
 			</child>
