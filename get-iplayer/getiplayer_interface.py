@@ -189,12 +189,14 @@ def parse_subtitles(input):
 		return None
 
 class PendingResult(object):
-	def __init__(self, hasresult, getresult):
+	def __init__(self, hasresult, getresult, showserrors):
 		self._resultlock = threading.Lock()
 		self._waiterlock = threading.Lock()
 		self._hasresult = hasresult
 		self._getresult = getresult
+		self._showserrors = showserrors # value of getresult() will be treated as (result, [errors])
 		self._result = None
+		self._errors = []
 		self._gotresult = False
 		self._callbacks = []
 
@@ -205,10 +207,18 @@ class PendingResult(object):
 		with self._resultlock:
 			if self._gotresult:
 				return self._result
-			self._result = self._getresult()
+			r = self._getresult()
+			if self._showserrors:
+				self._result, self._errors = r
+			else:
+				self._result = r
 			self._hasresult = lambda: True
 			self._gotresult = True
 		return self._result
+
+	def get_errors(self):
+		self.get_result()
+		return self._errors
 
 	def on_complete(self, callback):
 		with self._waiterlock:
@@ -224,15 +234,39 @@ class PendingResult(object):
 				threading.Thread(target=run, args=(self,)).start()
 
 	def translate(self, trans):
-		return PendingResult(self._hasresult, lambda: trans(self.get_result()))
+		if self._showserrors:
+			return PendingResult(self._hasresult, lambda: (trans(self.get_result()), self.get_errors()), True)
+		else:
+			return PendingResult(self._hasresult, lambda: trans(self.get_result()), False)
 
 	def then(self, tonext):
 		translated = self.translate(tonext)
 		def hasresult():
 			return translated.has_result() and translated.get_result().has_result()
 		def getresult():
-			return translated.get_result().get_result()
-		return PendingResult(hasresult, getresult)
+			r = translated.get_result()
+			if self._showserrors:
+				return (r.get_result(), translated.get_errors() + r.get_errors())
+			else:
+				return r.get_result()
+		return PendingResult(hasresult, getresult, self._showserrors)
+
+	@classmethod
+	def constant(cls, c):
+		return PendingResult(lambda: True, lambda: (c, []), True)
+
+	@classmethod
+	def all(cls, **pendingresults):
+		showerrors = any(p._showserrors for p in pendingresults.itervalues())
+		def hasresult():
+			return all(p.has_result() for p in pendingresults.itervalues())
+		def getresult():
+			res = {k: p.get_result() for (k, p) in pendingresults.iteritems()}
+			if showerrors:
+				return (res, [err for p in pendingresults.itervalues() for err in p.get_errors()])
+			else:
+				return res
+		return PendingResult(hasresult, getresult, showerrors)
 
 class GetIPlayer(object):
 	def __init__(self, location, flvstreamerloc=None, ffmpegloc=None, output_location="~/.totem-get-iplayer"):
@@ -276,28 +310,27 @@ class GetIPlayer(object):
 		return remove_from_running
 		
 
-	def __call(self, stdout, *vargs, **kwargs):
+	def __call(self, stdout, stderr, *vargs, **kwargs):
 		'''Call and return the new process.'''
 		args = self._parse_args(vargs, kwargs)
-		return subprocess.Popen(args, preexec_fn=os.setsid, stdout=stdout)
+		return subprocess.Popen(args, preexec_fn=os.setsid, stdout=stdout, stderr=stderr)
 
 	def _call_stream(self, stdout, *vargs, **kwargs):
 		'''Call and return whatever stdout was (expects an fd or pipe).'''
-		proc = self.__call(stdout, *vargs, **kwargs)
+		proc = self.__call(stdout, None, *vargs, **kwargs)
 		MAIN_STREAM_LIMITER.add_process(proc)
 		procdone = self.__add_running_process(proc)
-		PendingResult(lambda: proc.poll() is not None, proc.wait).on_complete(lambda _: procdone())
+		PendingResult(lambda: proc.poll() is not None, proc.wait, False).on_complete(lambda _: procdone())
 		return stdout
 
 	def _call(self, *vargs, **kwargs):
 		'''Calls and returns pending result for output.'''
-		proc = self.__call(subprocess.PIPE, *vargs, **kwargs)
+		proc = self.__call(subprocess.PIPE, subprocess.PIPE, *vargs, **kwargs)
 		def get_result():
 			stdout, stderr = proc.communicate()
-			#print stderr - should already be happening
-			return stdout
+			return (stdout, stderr.splitlines())
 		procdone = self.__add_running_process(proc)
-		result = PendingResult(lambda: proc.poll() is not None, get_result)
+		result = PendingResult(lambda: proc.poll() is not None, get_result, True)
 		result.on_complete(lambda _: procdone())
 		return result
 
@@ -318,14 +351,15 @@ class GetIPlayer(object):
 
 
 	def get_filters_and_blanks(self, filter_type, search=None, type="all", channel=".*", category=".*", version=".*"):
-		normal_filters = self.get_filters(filter_type, search, type, channel, category, version)
-		missing_filters = self.count_missing_attrib(filter_type, search, type, channel, category, version)
-		def complete_filters():
-			filters = normal_filters.get_result()
-			if missing_filters.get_result() > 0:
-				filters.insert(0, "")
-			return filters
-		return PendingResult(lambda: normal_filters.has_result() and missing_filters.has_result(), complete_filters)
+		filters = {
+			"normal": self.get_filters(filter_type, search, type, channel, category, version),
+			"missing": self.count_missing_attrib(filter_type, search, type, channel, category, version)
+		}
+		def complete_filters(filters):
+			if filters["missing"] > 0:
+				filters["normal"].insert(0, "")
+			return filters["normal"]
+		return PendingResult.all(**filters).translate(complete_filters)
 
 	def get_filters(self, filter_type, search=None, type="all", channel=".*", category=".*", version=".*"):
 		if filter_type == "category":
@@ -343,7 +377,7 @@ class GetIPlayer(object):
 	def count_missing_attrib(self, blankattrib, search=None, type="all", channel=".*", category=".*", version=".*"):
 		'''Counts the number of programmes with the given attribute blank, but that fit the other filters.'''
 		if blankattrib == "type" or blankattrib == "version":
-			return PendingResult(lambda: True, lambda: 0) # Don't have an option to exclude these, but I don't think you can have blank types
+			return PendingResult.constant(0) # Don't have an option to exclude these, but I don't think you can have blank types
 		exclude = {}
 		exclude["exclude-"+blankattrib] = ".+"
 		blank = self._call_no_refresh(*([search] if search else []), long="", type=type, channel=channel, category=category, **exclude)
@@ -377,14 +411,7 @@ class GetIPlayer(object):
 				for version in versions
 				if version
 			}
-			def hasresult():
-				return all(s.has_result() for s in versionstreams.itervalues())
-			def getresult():
-				streamresults = {
-					version: stream.get_result() for version, stream in versionstreams.iteritems()
-				}
-				return dict(info, streams = streamresults)
-			return PendingResult(hasresult, getresult)
+			return PendingResult.all(**versionstreams).translate(lambda vs: dict(info, streams=vs))
 		return maininfo.then(get_info_and_version_streams)
 
 	def record_programme(self, index, displayname=None, version="default", mode="best"):
