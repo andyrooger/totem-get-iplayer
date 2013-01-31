@@ -220,16 +220,24 @@ class PendingResult(object):
 		self.get_result()
 		return self._errors
 
-	def on_complete(self, callback):
+	def on_complete(self, callback, onerror=None):
+		'''
+		Run a function when the result is complete. Only one of callback or onerror is ever run.
+		If onerror is given it will be run whenever there are errors, otherwise callback is run.
+		'''
 		with self._waiterlock:
 			thread_exists = bool(self._callbacks)
-			self._callbacks.append(callback)
+			self._callbacks.append((callback, onerror))
 			if not thread_exists:
 				def run(self):
 					res = self.get_result()
+					err = self.get_errors()
 					with self._waiterlock:
-						for cb in self._callbacks:
-							cb(res)
+						for cb, oe in self._callbacks:
+							if oe is not None and err:
+								oe(err)
+							else:
+								cb(res)
 						self._callbacks = []
 				threading.Thread(target=run, args=(self,)).start()
 

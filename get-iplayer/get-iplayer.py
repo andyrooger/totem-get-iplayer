@@ -235,7 +235,7 @@ class GetIplayerPlugin (totem.Plugin):
 			button.set_tooltip_text(oldbuttontt)
 			self._ui_container.set_sensitive(True)
 			self.reset_ui(True)
-		self.gip.refresh_cache(False).on_complete(lambda _: gobject.idle_add(refresh_complete))
+		self.gip.refresh_cache(False).on_complete(lambda _: gobject.idle_add(refresh_complete), self.show_errors("refreshing"))
 
 	def _record_clicked_cb(self, button):
 		if self.showing_info is None:
@@ -248,7 +248,7 @@ class GetIplayerPlugin (totem.Plugin):
 		mode = self._ui_mode_list.get_model().get_value(selected_mode, 0)
 		if not mode:
 			return # Loading
-		self.gip.record_programme(self.showing_info, None, version, mode).on_complete(lambda _: self._populate_history())
+		self.gip.record_programme(self.showing_info, None, version, mode).on_complete(lambda _: self._populate_history(), self.show_errors("starting recording"))
 		self._populate_history()
 
 	def _play_clicked_cb(self, button):
@@ -279,7 +279,7 @@ class GetIplayerPlugin (totem.Plugin):
 					return
 				newversion = version if version is not None else self.config.config_preferred_version
 				self.play_programme(index, name=newname, version=newversion, mode=mode)
-			self.gip.get_programme_info(index).on_complete(got_info)
+			self.gip.get_programme_info(index).on_complete(got_info, self.show_errors("trying to play programme"))
 			return
 		if mode is None:
 			def got_streams(streams):
@@ -289,7 +289,7 @@ class GetIplayerPlugin (totem.Plugin):
 				within_acceptable = filter(lambda mb: mb[1] <= self.config.config_preferred_bitrate, mode_and_bitrate)
 				newmode = min(within_acceptable if within_acceptable else mode_and_bitrate, key=lambda mb: (mb[1], mb[0]))[0]
 				self.play_programme(index, name=name, version=version, mode=newmode)
-			self.gip.get_stream_info(index, version).on_complete(got_streams)
+			self.gip.get_stream_info(index, version).on_complete(got_streams, self.show_errors("trying find programme streams"))
 			return
 
 		fd = self.gip.stream_programme_to_pipe(index, version, mode)
@@ -332,7 +332,7 @@ class GetIplayerPlugin (totem.Plugin):
 				self._ui_mode_list.set_active(0)
 			self._ui_mode_list.set_sensitive(True)
 
-		self.gip.get_stream_info(index, version).on_complete(lambda modes: gobject.idle_add(got_modes, modes, version))
+		self.gip.get_stream_info(index, version).on_complete(lambda modes: gobject.idle_add(got_modes, modes, version), self.show_errors("retrieving modes"))
 
 	def _mode_selected_cb(self, mode_list):
 		mode_iter = mode_list.get_active_iter()
@@ -418,8 +418,16 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 		def got_filters(filters):
 			populate([(TreeValues(f, info_type=populating), []) for f in filters])
+
 		active_filters = self._active_filters(progs_store, branch)
-		self.gip.get_filters_and_blanks(populating, self.current_search, **active_filters).on_complete(got_filters)
+		self.gip.get_filters_and_blanks(
+			populating,
+			self.current_search,
+			**active_filters
+		).on_complete(
+			got_filters,
+			self.show_errors_and_cancel_populate(populate, populating)
+		)
 
 	def _populate_series_and_episodes(self, progs_list, branch):
 		populate = load_branch(progs_list, branch)
@@ -431,7 +439,13 @@ class GetIplayerPlugin (totem.Plugin):
 				for s, eps in series.iteritems()
 			])
 		active_filters = self._active_filters(progs_list.get_model(), branch)
-		self.gip.get_episodes(self.current_search, **active_filters).on_complete(got_episodes)
+		self.gip.get_episodes(
+			self.current_search,
+			**active_filters
+		).on_complete(
+			got_episodes,
+			self.show_errors_and_cancel_populate(populate, "programme")
+		)
 
 	def _populate_history(self):
 		def populate_store(history):
@@ -452,7 +466,7 @@ class GetIplayerPlugin (totem.Plugin):
 			if historystore.get_iter_root() is not None:
 				self._ui_history_pane.show_all()
 
-		self.gip.get_history().on_complete(lambda history: gobject.idle_add(populate_store, history))
+		self.gip.get_history().on_complete(lambda history: gobject.idle_add(populate_store, history), self.show_errors("retrieving recordings"))
 
 	def _convert_search_terms(self, terms):
 		st = self.config.config_search_type
@@ -478,6 +492,7 @@ class GetIplayerPlugin (totem.Plugin):
 			return terms # On error use regex...
 
 	def _load_info(self, index):
+		'''Loads information for a particular programme.'''
 		self.showing_info = index
 
 		# First show a loading page
@@ -552,7 +567,38 @@ class GetIplayerPlugin (totem.Plugin):
 			load_image_in_background(self._ui_thumb, info["thumbnail"],
 				cancelcheck=lambda: self.showing_info != index,
 				transform=lambda pb: ensure_image_small(pb, 150, 100))
-		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info))
+
+		def on_fail(errs):
+			self._ui_programme_info.hide_all()
+			self.show_errors("loading programme information")(errs)
+
+		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info), on_fail)
+
+	def show_errors(self, activity=None):
+		'''Creates a function that can display a list of errors.'''
+		message = "There were %s errors%s:\n%s"
+		activitystr = " while %s" % (activity,) if activity is not None else ""
+		def show_errs(errs):
+			dlg = gtk.MessageDialog(
+				parent=self.totem.get_main_window(),
+				flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
+				type=gtk.MESSAGE_ERROR,
+				buttons=gtk.BUTTONS_OK,
+				message_format=message % (len(errs), activitystr, "\n".join(errs))
+			)
+			dlg.run()
+			dlg.destroy()
+		return lambda errs: gobject.idle_add(show_errs, errs)
+
+	def show_errors_and_cancel_populate(self, populate, activity=None):
+		title = "Failed to load"
+		if activity is not None:
+			title += " %ss" % (activity,)
+		def pop_and_show(errs):
+			gobject.idle_add(populate, [(TreeValues(title, loaded=True), [])])
+			self.show_errors("populating %ss" % (activity,))(errs)
+		return pop_and_show
+
 
 def is_branch_loaded(treestore, branch_iter):
 	if branch_iter is None:
