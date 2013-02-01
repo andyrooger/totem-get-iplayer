@@ -248,7 +248,18 @@ class GetIplayerPlugin (totem.Plugin):
 		mode = self._ui_mode_list.get_model().get_value(selected_mode, 0)
 		if not mode:
 			return # Loading
-		self.gip.record_programme(self.showing_info, None, version, mode).on_complete(lambda _: self._populate_history(), self.show_errors("starting recording"))
+		def on_recording_fail(errs):
+			self.show_errors("recording")(errs)
+			self._populate_history()
+		self.gip.record_programme(
+			self.showing_info,
+			None,
+			version,
+			mode
+		).on_complete(
+			lambda _: self._populate_history(),
+			on_recording_fail
+		)
 		self._populate_history()
 
 	def _play_clicked_cb(self, button):
