@@ -558,7 +558,12 @@ class GetIplayerPlugin (totem.Plugin):
 			timetoexpiry = info.get("expiryrel")
 			if timetoexpiry or "versions" in info:
 				self._ui_programme_info.set_sensitive(True)
-			self._ui_expiry.set_text("Expires %s" % timetoexpiry if timetoexpiry else ('' if "versions" in info else "Expired"))
+			self._ui_expiry.set_markup(
+				"Expires %s" % timetoexpiry
+				if timetoexpiry
+				else (''
+					if "versions" in info
+					else "<span foreground='red'><b>Expired</b></span>"))
 			self._ui_desc.get_buffer().set_text(info.get("desc", "No description"))
 			self._ui_mode_list.get_model().clear()
 			self._ui_version_list.get_model().clear()
