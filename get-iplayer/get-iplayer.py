@@ -304,7 +304,7 @@ class GetIplayerPlugin (totem.Plugin):
 			return
 
 		fd = self.gip.stream_programme_to_pipe(index, version, mode)
-		self.totem.add_to_playlist_and_play("fd://%s" % fd, name, False)
+		gobject.idle_add(self.totem.add_to_playlist_and_play, "fd://%s" % fd, name, False)
 
 
 	def _version_selected_cb(self, version_list, index, info):
@@ -585,7 +585,7 @@ class GetIplayerPlugin (totem.Plugin):
 				transform=lambda pb: ensure_image_small(pb, 150, 100))
 
 		def on_fail(errs):
-			self._ui_programme_info.hide_all()
+			gobject.idle_add(self._ui_programme_info.hide_all)
 			self.show_errors("loading programme information")(errs)
 
 		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info), on_fail)
