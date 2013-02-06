@@ -285,10 +285,9 @@ class PendingResult(object):
 			else:
 				for line in self.get_result().splitlines():
 					(stderr if iserrorstd(line) else stdout).append(line)
-			stdout = "\n".join(stdout)
 
 			if not self._showserrors:
-				return stdout
+				return "\n".join(stdout)
 
 			if iserrorerr is None:
 				stderr += self.get_errors()
@@ -296,6 +295,7 @@ class PendingResult(object):
 				for line in self.get_errors():
 					(stderr if iserrorerr(line) else stdout).append(line)
 
+			stdout = "\n".join(stdout)
 			return (stdout, stderr)
 			
 		return PendingResult(self.has_result, getresult, self._showserrors)
