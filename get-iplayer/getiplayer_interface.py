@@ -188,6 +188,13 @@ def parse_subtitles(input):
 	else:
 		return None
 
+def is_error_line(line):
+	'''Is this line a real error line?'''
+	if line.startswith("ERROR:"):
+		return "localfile" not in line # Ignore errors about localfiles plugin
+	if line.startswith("WARNING:"):
+		return True
+
 class PendingResult(object):
 	def __init__(self, hasresult, getresult, showserrors):
 		self._resultlock = threading.Lock()
@@ -258,6 +265,35 @@ class PendingResult(object):
 			else:
 				return r.get_result()
 		return PendingResult(hasresult, getresult, self._showserrors)
+
+	def redistribute_streams(self, iserrorstd=None, iserrorerr=None):
+		'''
+		get_iplayer doesn't necessarily use error stream for errors and stdout for normal output.
+		This lets us redistribute the streams.
+		iserror methods for each stream return whether a given line is an error line.
+		'''
+		def getresult():
+			stdout = []
+			stderr = []
+			if iserrorstd is None:
+				stdout += self.get_result().splitlines()
+			else:
+				for line in self.get_result().splitlines():
+					(stderr if iserrorstd(line) else stdout).append(line)
+			stdout = "\n".join(stdout)
+
+			if not self._showserrors:
+				return stdout
+
+			if iserrorerr is None:
+				stderr += self.get_errors()
+			else:
+				for line in self.get_errors():
+					(stderr if iserrorerr(line) else stdout).append(line)
+
+			return (stdout, stderr)
+			
+		return PendingResult(self.has_result, getresult, self._showserrors)
 
 	@classmethod
 	def constant(cls, c):
@@ -340,7 +376,7 @@ class GetIPlayer(object):
 		procdone = self.__add_running_process(proc)
 		result = PendingResult(lambda: proc.poll() is not None, get_result, True)
 		result.on_complete(lambda _: procdone())
-		return result
+		return result.redistribute_streams(is_error_line, is_error_line)
 
 	def _call_no_refresh(self, *vargs, **kwargs):
 		'''Like _call but ensures no unexpected refresh occurs during the command.'''
