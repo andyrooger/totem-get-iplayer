@@ -562,7 +562,7 @@ class GetIplayerPlugin (totem.Plugin):
 				"Expires %s" % timetoexpiry
 				if timetoexpiry
 				else (''
-					if "versions" in info
+					if "versions" in info or not info.get("hasexpired", False)
 					else "<span foreground='red'><b>Expired</b></span>"))
 			self._ui_desc.get_buffer().set_text(info.get("desc", "No description"))
 			self._ui_mode_list.get_model().clear()
@@ -585,10 +585,19 @@ class GetIplayerPlugin (totem.Plugin):
 				transform=lambda pb: ensure_image_small(pb, 150, 100))
 
 		def on_fail(errs):
-			gobject.idle_add(self._ui_programme_info.hide_all)
+			self._ui_programme_info.hide_all()
 			self.show_errors("loading programme information")(errs)
 
-		self.gip.get_programme_info(index).on_complete(lambda info: gobject.idle_add(got_info, info), on_fail)
+		def finished(result, errs):
+			if len(errs) == 1 and errs[0].startswith("WARNING: No programmes are available for this pid"):
+				errs = [] # Programme has expired
+				result["hasexpired"] = True
+			if errs:
+				gobject.idle_add(on_fail, errs)
+			else:
+				gobject.idle_add(got_info, result)
+
+		self.gip.get_programme_info(index).on_complete(always=finished)
 
 	def show_errors(self, activity=None):
 		'''Creates a function that can display a list of errors.'''

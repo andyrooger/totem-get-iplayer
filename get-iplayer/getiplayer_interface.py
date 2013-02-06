@@ -227,10 +227,12 @@ class PendingResult(object):
 		self.get_result()
 		return self._errors
 
-	def on_complete(self, callback, onerror=None):
+	def on_complete(self, callback=None, onerror=None, always=None):
 		'''
-		Run a function when the result is complete. Only one of callback or onerror is ever run.
-		If onerror is given it will be run whenever there are errors, otherwise callback is run.
+		Run a function when the result is complete. At most one of callback or onerror is ever run.
+		If neither are specified then neither will be run, otherwise onerror is run when it is specified and there
+		is an error, or callback is run the rest of the time.
+		Always is always run (if given) and given both normal and error outputs.
 		'''
 		with self._waiterlock:
 			thread_exists = bool(self._callbacks)
@@ -243,8 +245,10 @@ class PendingResult(object):
 						for cb, oe in self._callbacks:
 							if oe is not None and err:
 								oe(err)
-							else:
+							elif cb is not None:
 								cb(res)
+							if always is not None:
+								always(res, err)
 						self._callbacks = []
 				threading.Thread(target=run, args=(self,)).start()
 
@@ -271,6 +275,7 @@ class PendingResult(object):
 		get_iplayer doesn't necessarily use error stream for errors and stdout for normal output.
 		This lets us redistribute the streams.
 		iserror methods for each stream return whether a given line is an error line.
+		This only works when the normal result is text!
 		'''
 		def getresult():
 			stdout = []
