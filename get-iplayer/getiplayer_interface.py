@@ -235,19 +235,19 @@ class PendingResult(object):
 		'''
 		with self._waiterlock:
 			thread_exists = bool(self._callbacks)
-			self._callbacks.append((callback, onerror))
+			self._callbacks.append((callback, onerror, always))
 			if not thread_exists:
 				def run(self):
 					res = self.get_result()
 					err = self.get_errors()
 					with self._waiterlock:
-						for cb, oe in self._callbacks:
-							if oe is not None and err:
-								oe(err)
-							elif cb is not None:
-								cb(res)
-							if always is not None:
-								always(res, err)
+						for cb_success, cb_err, cb_always in self._callbacks:
+							if cb_err is not None and err:
+								cb_err(err)
+							elif cb_success is not None:
+								cb_success(res)
+							if cb_always is not None:
+								cb_always(res, err)
 						self._callbacks = []
 				threading.Thread(target=run, args=(self,)).start()
 
@@ -319,7 +319,7 @@ class PendingResult(object):
 class GetIPlayer(object):
 	def __init__(self, location, flvstreamerloc=None, ffmpegloc=None, output_location="~/.totem-get-iplayer"):
 		self.stock_vargs = [location]
-		self.stock_kwargs = {}
+		self.stock_kwargs = {"nocopyright": ""}
 		if flvstreamerloc is not None:
 			self.stock_kwargs["flvstreamer"] = flvstreamerloc
 		if ffmpegloc is not None:
