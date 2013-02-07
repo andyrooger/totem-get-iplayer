@@ -340,7 +340,7 @@ class GetIPlayer(object):
 	def close_main_stream(self):
 		MAIN_STREAM_LIMITER.close()
 
-	def _parse_args(self, vargs, kwargs):
+	def _parse_args(self, *vargs, **kwargs):
 		args = list(self.stock_vargs)
 		args.extend(str(v) for v in vargs)
 		for k, v in dict(self.stock_kwargs, **kwargs).iteritems():
@@ -358,22 +358,25 @@ class GetIPlayer(object):
 		return remove_from_running
 		
 
-	def __call(self, stdout, stderr, *vargs, **kwargs):
+	def __call(self, stdout, stderr, args):
 		'''Call and return the new process.'''
-		args = self._parse_args(vargs, kwargs)
 		return subprocess.Popen(args, preexec_fn=os.setsid, stdout=stdout, stderr=stderr)
 
-	def _call_stream(self, stdout, *vargs, **kwargs):
+	def _call_stream(self, stdout, args):
 		'''Call and return whatever stdout was (expects an fd or pipe).'''
-		proc = self.__call(stdout, None, *vargs, **kwargs)
+		proc = self.__call(stdout, None, args)
 		MAIN_STREAM_LIMITER.add_process(proc)
 		procdone = self.__add_running_process(proc)
 		PendingResult(lambda: proc.poll() is not None, proc.wait, False).on_complete(lambda _: procdone())
 		return stdout
 
-	def _call(self, *vargs, **kwargs):
-		'''Calls and returns pending result for output.'''
-		proc = self.__call(subprocess.PIPE, subprocess.PIPE, *vargs, **kwargs)
+	def _call(self, args, norefresh=True):
+		'''Calls and returns pending result for output. Can avoid refreshes occurring during the call.'''
+		if norefresh:
+			args.append("--expiry=315360000") # Cache expires in 10 year's time...
+			args.append("--refresh-exclude=.*") # Don't refresh things that don't exist in the cache at all
+		
+		proc = self.__call(subprocess.PIPE, subprocess.PIPE, args)
 		def get_result():
 			stdout, stderr = proc.communicate()
 			return (stdout, stderr.splitlines())
@@ -381,12 +384,6 @@ class GetIPlayer(object):
 		result = PendingResult(lambda: proc.poll() is not None, get_result, True)
 		result.on_complete(lambda _: procdone())
 		return result.redistribute_streams(is_error_line, is_error_line)
-
-	def _call_no_refresh(self, *vargs, **kwargs):
-		'''Like _call but ensures no unexpected refresh occurs during the command.'''
-		kwargs["expiry"] = "315360000" # Cache expires in 10 year's time...
-		kwargs["refresh-exclude"] = ".*" # Don't refresh things that don't exist in the cache at all
-		return self._call(*vargs, **kwargs)
 
 	def _fix_blank_search(self, **kwargs):
 		if "channel" in kwargs and not kwargs["channel"]:
@@ -415,7 +412,8 @@ class GetIPlayer(object):
 		if filter_type == "version":
 			filter_type = "versions"
 		fixed_filtering = self._fix_blank_search(type=type, channel=channel, category=category, version=version)
-		filters = self._call_no_refresh(*([search] if search else []), list=filter_type, long="", **fixed_filtering)
+		args = self._parse_args(*([search] if search else []), list=filter_type, long="", **fixed_filtering)
+		filters = self._call(args)
 		available_filters = filters.translate(lambda fs: list(parse_listings(fs)))
 		if filter_type == "versions":
 			return available_filters.translate(parse_versions)
@@ -428,12 +426,14 @@ class GetIPlayer(object):
 			return PendingResult.constant(0) # Don't have an option to exclude these, but I don't think you can have blank types
 		exclude = {}
 		exclude["exclude-"+blankattrib] = ".+"
-		blank = self._call_no_refresh(*([search] if search else []), long="", type=type, channel=channel, category=category, **exclude)
+		args = self._parse_args(*([search] if search else []), long="", type=type, channel=channel, category=category, **exclude)
+		blank = self._call(args)
 		return blank.translate(parse_match_count)
 
 	def get_episodes(self, search=None, type="all", channel=".*", category=".*", version=".*"):
 		fixed_filtering = self._fix_blank_search(type=type, channel=channel, category=category, version=version)
-		episodes = self._call_no_refresh(*([search] if search else []), long="", tree="", listformat="<index>: (<episodenum>) <episode>", **fixed_filtering)
+		args = self._parse_args(*([search] if search else []), long="", tree="", listformat="<index>: (<episodenum>) <episode>", **fixed_filtering)
+		episodes = self._call(args)
 		return episodes.translate(parse_episodes)
 
 	def get_programme_info(self, index, availableversions=None):
@@ -443,11 +443,13 @@ class GetIPlayer(object):
 		'''
 		if availableversions is None:
 			return self._version_result.then(lambda vs: self.get_programme_info(index, vs))
-		info = self._call_no_refresh(index, info="", versions=",".join(availableversions))
+		args = self._parse_args(index, info="", versions=",".join(availableversions))
+		info = self._call(args)
 		return info.translate(lambda i: parse_info(i, availableversions))
 
 	def get_stream_info(self, index, version):
-		info = self._call_no_refresh(index, version=version, streaminfo="")
+		args = self._parse_args(index, version=version, streaminfo="")
+		info = self._call(args)
 		return info.translate(parse_streaminfo)
 
 	def get_programme_info_and_streams(self, index, availableversions=None):
@@ -466,27 +468,36 @@ class GetIPlayer(object):
 		if displayname is None:
 			displayname = "Programme %s" % index
 		self.recordings[index] = (displayname, version, mode)
-		recording = self._call_no_refresh(index, output=self.output_location, get="", q="", versions=version, modes=mode)
+		args = self._parse_args(index, output=self.output_location, get="", q="", versions=version, modes=mode)
+		recording = self._call(args)
 		recording.on_complete(lambda _: self.recordings.pop(index, None))
 		return recording
 
 	def get_history(self, guess_version=True):
-		history = self._call_no_refresh(history="", skipdeleted="", listformat="(<index>):(<name>):(<episode>):(<versions>):(<mode>):(<filename>)")
+		args = self._parse_args(
+			history="",
+			skipdeleted="",
+			listformat="(<index>):(<name>):(<episode>):(<versions>):(<mode>):(<filename>)"
+		)
+		history = self._call(args)
 		return history.translate(lambda h: list(parse_history(h, guess_version)))
 
 	def stream_programme_to_external(self, index, version="default", mode="best", stream_cmd="totem fd://0 --no-existing-session"):
 		'''Stream a program to an external program's stdin.'''
-		return self._call_no_refresh(index, versions=version, modes=mode, stream="", player=stream_cmd, q="")
+		args = self._parse_args(index, versions=version, modes=mode, stream="", player=stream_cmd, q="")
+		return self._call(args)
 
 	def stream_programme_to_pipe(self, index, version="default", mode="best"):
 		'''Stream a program to a pipe, and return Totem's file descriptor for it.'''
 		rfd, wfd = os.pipe()
-		self._call_stream(wfd, index, versions=version, modes=mode, stream="", q="")
+		args = self._parse_args(wfd, index, versions=version, modes=mode, stream="", q="")
+		self._call_stream(args)
 		return rfd
 
 	def get_subtitles(self, index, version="default"):
 		'''Download subtitles for a program, returning a pending result for the output location or None if there were no subtitles.'''
-		st = self._call_no_refresh(index, output=self.output_location, get="", **{"subtitles-only": ""})
+		args = self._parse_args(index, output=self.output_location, get="", **{"subtitles-only": ""})
+		st = self._call(args)
 		return st.translate(parse_subtitles)
 
 	def refresh_cache(self, full, *types):
@@ -497,7 +508,8 @@ class GetIPlayer(object):
 		kwargs = {}
 		if full:
 			kwargs["refresh"] = ""
-		return self._call(list="categories", q="", type=typestr, **kwargs)
+		args = self._parse_args(list="categories", q="", type=typestr, **kwargs)
+		return self._call(args, norefresh=False)
 
 class ProcessLimiter(object):
 	'''Limits the number of concurrent processes by killing old ones.'''
