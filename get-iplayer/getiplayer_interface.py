@@ -190,10 +190,9 @@ def parse_subtitles(input):
 
 def is_error_line(line):
 	'''Is this line a real error line?'''
-	if line.startswith("ERROR:"):
+	if line.startswith("ERROR:") or line.startswith("WARNING:"):
 		return "localfile" not in line # Ignore errors about localfiles plugin
-	if line.startswith("WARNING:"):
-		return True
+	return False
 
 class PendingResult(object):
 	def __init__(self, hasresult, getresult, showserrors):
