@@ -24,6 +24,7 @@ import sys
 import re
 import threading
 import subprocess
+import tempfile
 import signal
 import os.path
 from collections import OrderedDict, defaultdict
@@ -370,16 +371,25 @@ class GetIPlayer(object):
 		PendingResult(lambda: proc.poll() is not None, proc.wait, False).on_complete(lambda _: procdone())
 		return stdout
 
-	def _call(self, args, norefresh=True):
-		'''Calls and returns pending result for output. Can avoid refreshes occurring during the call.'''
+	def _call(self, args, norefresh=True, longoutput=False):
+		'''Calls and returns pending result for output. Can avoid refreshes occurring during the call and output to file rather than buffer.'''
 		if norefresh:
 			args.append("--expiry=315360000") # Cache expires in 10 year's time...
 			args.append("--refresh-exclude=.*") # Don't refresh things that don't exist in the cache at all
-		
-		proc = self.__call(subprocess.PIPE, subprocess.PIPE, args)
-		def get_result():
-			stdout, stderr = proc.communicate()
-			return (stdout, stderr.splitlines())
+		if longoutput:
+			stdoutfile = tempfile.TemporaryFile()
+			stderrfile = tempfile.TemporaryFile()
+			proc = self.__call(stdoutfile, stderrfile, args)
+			def get_result():
+				proc.communicate()
+				stdoutfile.seek(0)
+				stderrfile.seek(0)
+				return (stdoutfile.read(), stderrfile.readlines())
+		else:
+			proc = self.__call(subprocess.PIPE, subprocess.PIPE, args)
+			def get_result():
+				stdout, stderr = proc.communicate()
+				return (stdout, stderr.splitlines())
 		procdone = self.__add_running_process(proc)
 		result = PendingResult(lambda: proc.poll() is not None, get_result, True)
 		result.on_complete(lambda _: procdone())
@@ -468,8 +478,8 @@ class GetIPlayer(object):
 		if displayname is None:
 			displayname = "Programme %s" % index
 		self.recordings[index] = (displayname, version, mode)
-		args = self._parse_args(index, output=self.output_location, get="", q="", versions=version, modes=mode)
-		recording = self._call(args)
+		args = self._parse_args(index, output=self.output_location, get="", versions=version, modes=mode)
+		recording = self._call(args, longoutput=True)
 		recording.on_complete(lambda _: self.recordings.pop(index, None))
 		return recording
 
