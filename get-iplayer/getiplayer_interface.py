@@ -191,7 +191,9 @@ def parse_subtitles(input):
 
 def is_error_line(line):
 	'''Is this line a real error line?'''
-	if line.startswith("ERROR:") or line.startswith("WARNING:"):
+	if line == "WARNING: You haven't specified an output file (-o filename), using stdout":
+		return False # Ignore this warning from streaming programmes
+	elif line.startswith("ERROR:") or line.startswith("WARNING:"):
 		return "localfile" not in line # Ignore errors about localfiles plugin
 	return False
 
@@ -363,13 +365,16 @@ class GetIPlayer(object):
 		'''Call and return the new process.'''
 		return subprocess.Popen(args, preexec_fn=os.setsid, stdout=stdout, stderr=stderr)
 
-	def _call_stream(self, stdout, args):
+	def _call_stream(self, stdout, args, haltonerror=True):
 		'''Call and return whatever stdout was (expects an fd or pipe).'''
-		proc = self.__call(stdout, None, args)
+		proc = self.__call(stdout, subprocess.PIPE, args)
 		MAIN_STREAM_LIMITER.add_process(proc)
 		procdone = self.__add_running_process(proc)
-		PendingResult(lambda: proc.poll() is not None, proc.wait, False).on_complete(lambda _: procdone())
-		return stdout
+		monitor = ProcessMonitor(proc, filtererr=is_error_line, haltonerror=haltonerror)
+		result = monitor.get_pending_result()
+		result.on_complete(lambda _: procdone())
+		result.on_complete(lambda _: os.close(stdout))
+		return result
 
 	def _call(self, args, norefresh=True, longoutput=False):
 		'''Calls and returns pending result for output. Can avoid refreshes occurring during the call and output to file rather than buffer.'''
@@ -500,9 +505,9 @@ class GetIPlayer(object):
 	def stream_programme_to_pipe(self, index, version="default", mode="best"):
 		'''Stream a program to a pipe, and return Totem's file descriptor for it.'''
 		rfd, wfd = os.pipe()
-		args = self._parse_args(wfd, index, versions=version, modes=mode, stream="", q="")
-		self._call_stream(args)
-		return rfd
+		args = self._parse_args(index, versions=version, modes=mode, stream="")
+		streamresult = self._call_stream(wfd, args)
+		return rfd, streamresult
 
 	def get_subtitles(self, index, version="default"):
 		'''Download subtitles for a program, returning a pending result for the output location or None if there were no subtitles.'''
@@ -553,3 +558,71 @@ class ProcessLimiter(object):
 		self.processes = {}
 
 MAIN_STREAM_LIMITER = ProcessLimiter(1)
+
+class ProcessMonitor(object):
+	'''Monitors the input and output streams of a process to detect when an error occurs and stop it.'''
+
+	def __init__(self, proc, listenstd=False, listenerr=True, filterstd=None, filtererr=None, haltonerror=False):
+		self._proc = proc
+		self._stdout = []
+		self._stderr = []
+		self._haltonerror = haltonerror
+		self._terminated = False
+		self._threads = []
+
+		if filterstd is None:
+			filterstd = lambda _: False
+		if filtererr is None:
+			filtererr = lambda _: True
+
+		if listenstd:
+			self._threads.append(threading.Thread(target=self._readstream, args=(proc.stdout, self._stdout, filterstd)))
+		if listenerr:
+			self._threads.append(threading.Thread(target=self._readstream, args=(proc.stderr, self._stderr, filtererr)))
+		for thread in self._threads:
+			thread.start()
+
+	def _readstream(self, stream, defaultstream, filter_iserror):
+		'''Reads a stream, optionally filters into error and standard streams and can specify that any output is and error when not filtered. Will block.'''
+		so = self._stdout.append
+		se = self._stderr.append
+		if self._haltonerror:
+			def se(line):
+				self._stderr.append(line)
+				self._forceterminate()
+
+		def addtostream(line):
+			(se if filter_iserror(line) else so)(line)
+			
+		line = stream.readline()
+		while line and not self._terminated:
+			addtostream(line.strip())
+			line = stream.readline()
+
+	def _forceterminate(self):
+		self._proc.terminate()
+		self._terminated = True
+
+	def stdout(self, splitlines=True):
+		'''Get the current set of lines in stdout.'''
+		if splitlines:
+			return self._stdout
+		else:
+			return "\n".join(self._stdout)
+
+	def stderr(self, splitlines=True):
+		'''Get the current set of lines in stderr.'''
+		if splitlines:
+			return self._stderr
+		else:
+			return "\n".join(self._stderr)
+
+	def get_pending_result(self):
+		def blocking_result():
+			for thread in self._threads:
+				thread.join()
+			return self.stdout(False), self.stderr(True)
+		return PendingResult(
+			lambda: not any(thread.is_alive() for thread in self._threads) and self._proc.poll() is not None,
+			blocking_result,
+			True)

@@ -303,7 +303,8 @@ class GetIplayerPlugin (totem.Plugin):
 			self.gip.get_stream_info(index, version).on_complete(got_streams, self.show_errors("trying find programme streams"))
 			return
 
-		fd = self.gip.stream_programme_to_pipe(index, version, mode)
+		fd, streamresult = self.gip.stream_programme_to_pipe(index, version, mode)
+		streamresult.on_complete(onerror=self.show_errors("playing programme"))
 		gobject.idle_add(self.totem.add_to_playlist_and_play, "fd://%s" % fd, name, False)
 
 
