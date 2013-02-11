@@ -373,7 +373,6 @@ class GetIPlayer(object):
 		monitor = ProcessMonitor(proc, filtererr=is_error_line, haltonerror=haltonerror)
 		result = monitor.get_pending_result()
 		result.on_complete(lambda _: procdone())
-		result.on_complete(lambda _: os.close(stdout))
 		return result
 
 	def _call(self, args, norefresh=True, longoutput=False):
@@ -507,6 +506,8 @@ class GetIPlayer(object):
 		rfd, wfd = os.pipe()
 		args = self._parse_args(index, versions=version, modes=mode, stream="")
 		streamresult = self._call_stream(wfd, args)
+		streamresult.on_complete(lambda _: os.close(wfd))
+		streamresult.on_complete(lambda _: os.close(rfd))
 		return rfd, streamresult
 
 	def get_subtitles(self, index, version="default"):

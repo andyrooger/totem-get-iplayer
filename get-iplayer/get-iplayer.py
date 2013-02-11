@@ -77,6 +77,7 @@ class GetIplayerPlugin (totem.Plugin):
 		self.current_search = None
 		self._current_search_input = None
 		self.gip = None
+		self._is_starting_stream = False # Used when a file is closed to figure out when to avoid killing a stream
 
 	def activate (self, totem_object):
 		# Build the interface
@@ -303,6 +304,7 @@ class GetIplayerPlugin (totem.Plugin):
 			self.gip.get_stream_info(index, version).on_complete(got_streams, self.show_errors("trying find programme streams"))
 			return
 
+		self._is_starting_stream = True # Next file close will not kill the main stream
 		fd, streamresult = self.gip.stream_programme_to_pipe(index, version, mode)
 		streamresult.on_complete(onerror=self.show_errors("playing programme"))
 		gobject.idle_add(self.totem.add_to_playlist_and_play, "fd://%s" % fd, name, False)
@@ -404,7 +406,9 @@ class GetIplayerPlugin (totem.Plugin):
 		return True
 
 	def _file_closed_cb(self, totem):
-		self.gip.close_main_stream()
+		if not self._is_starting_stream:
+			self.gip.close_main_stream()
+		self._is_starting_stream = False
 
 	def _filter_at_branch(self, progs_store, branch):
 		node_names = []
