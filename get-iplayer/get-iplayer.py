@@ -488,7 +488,7 @@ class GetIplayerPlugin (totem.Plugin):
 		st = self.config.config_search_type
 		if st == "word":
 			words = terms.split()
-			return ''.join(r"(?=.*(^|\s)+" + re.escape(word) + r"($|\s)+)" for word in words)
+			return ''.join(r"(?=.*\W+" + re.escape(word) + r"\W+)" for word in words)
 		elif st == "wildcard":
 			# Should be split up by words, no particular order for words
 			# Normal word should search for whole word
@@ -499,8 +499,8 @@ class GetIplayerPlugin (totem.Plugin):
 			for word in words:
 				if re.search(r"[^\*]+", word) is not None: # not just ****
 					word = re.escape(word)
-					regex_words.append(word.replace(r"\*", r"[^\s]*"))
-			return ''.join(r"(?=.*(^|\s)+" + word + r"($|\s)+)" for word in regex_words)
+					regex_words.append(word.replace(r"\*", r"\w*"))
+			return ''.join(r"(?=.*\W+" + word + r"\W+)" for word in regex_words)
 		elif st == "regex":
 			# Exact search with regex
 			return terms
