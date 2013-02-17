@@ -195,6 +195,8 @@ def is_error_line(line):
 		return False # Ignore this warning from streaming programmes
 	elif line.startswith("ERROR:") or line.startswith("WARNING:"):
 		return "localfile" not in line # Ignore errors about localfiles plugin
+	elif "main input error" in line:
+		return True # VLC error (often seen when trying to play rtsp)
 	return False
 
 class PendingResult(object):
