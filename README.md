@@ -26,12 +26,12 @@ Please let me know if you try it and it breaks...
 Installation
 ------------
 
-1)  Download the code from github.
-2)  Place or symlink the get-iplayer directory in:
+1.  Download the code from github.
+2.  Place or symlink the get-iplayer directory in:
     * /usr/lib/totem/plugins or equivalent to install for all users.
     * ~/.local/share/totem/plugins or equivalent to install just for yourself.
-3)  Open Totem, if "Get iPlayer" does not appear as a possible sidebar, open Edit > Plugins and enable it.
-4) Enjoy!
+3.  Open Totem, if "Get iPlayer" does not appear as a possible sidebar, open Edit > Plugins and enable it.
+4. Enjoy!
 
 License
 -------
