@@ -194,7 +194,7 @@ def is_error_line(line):
 	if line == "WARNING: You haven't specified an output file (-o filename), using stdout":
 		return False # Ignore this warning from streaming programmes
 	elif line.startswith("ERROR:") or line.startswith("WARNING:"):
-		return "localfile" not in line # Ignore errors about localfiles plugin
+		return True
 	elif "main input error" in line:
 		return True # VLC error (often seen when trying to play rtsp)
 	return False
@@ -322,13 +322,16 @@ class PendingResult(object):
 		return PendingResult(hasresult, getresult, showerrors)
 
 class GetIPlayer(object):
-	def __init__(self, location, flvstreamerloc=None, ffmpegloc=None, output_location="~/.totem-get-iplayer"):
+	def __init__(self, location, flvstreamerloc=None, ffmpegloc=None, localfiles_directories=None, output_location="~/.totem-get-iplayer"):
 		self.stock_vargs = [location]
 		self.stock_kwargs = {"nocopyright": ""}
 		if flvstreamerloc is not None:
 			self.stock_kwargs["flvstreamer"] = flvstreamerloc
 		if ffmpegloc is not None:
 			self.stock_kwargs["ffmpeg"] = ffmpegloc
+		if not localfiles_directories:
+			localfiles_directories = ["/non/existent/directory"]
+		self.stock_kwargs["localfilesdirs"] = ",".join(localfiles_directories)
 		self.recordings = {}
 		self._running_processes = {}
 		self.output_location = os.path.abspath(os.path.expanduser(output_location))
@@ -526,8 +529,11 @@ class GetIPlayer(object):
 		kwargs = {}
 		if full:
 			kwargs["refresh"] = ""
+		# Localfiles does not get refreshed properly unless we do full
+		separate_localfile_refresh = not full and ("all" in types or "localfiles" in types)
+		localrefresh = self._call(self._parse_args(q="", type="localfiles", refresh=""), norefresh=False) if separate_localfile_refresh else PendingResult.constant("")
 		args = self._parse_args(list="categories", q="", type=typestr, **kwargs)
-		return self._call(args, norefresh=False)
+		return localrefresh.then(lambda _: self._call(args, norefresh=False))
 
 class ProcessLimiter(object):
 	'''Limits the number of concurrent processes by killing old ones.'''

@@ -141,10 +141,11 @@ class GetIplayerPlugin (totem.Plugin):
 		if loc is not None:
 			flvstreamerloc = self.config.config_flvstreamer_location or which("rtmpdump") or which("flvstreamer")
 			ffmpegloc = self.config.config_ffmpeg_location or which("ffmpeg")
+			localfiles_dirs = self.config.config_localfiles_directories
 			if self.gip is not None:
 				self.gip.close()
 			try:
-				self.gip = GetIPlayer(loc, flvstreamerloc, ffmpegloc)
+				self.gip = GetIPlayer(loc, flvstreamerloc, ffmpegloc, localfiles_dirs)
 			except OSError: pass
 			else:
 				location_correct = True
@@ -802,6 +803,12 @@ class Configuration(object):
 		self._uiconfig_preferred_bitrate.add_mark(1200, gtk.POS_BOTTOM, "high")
 		self._uiconfig_preferred_bitrate.add_mark(2500, gtk.POS_BOTTOM, "hd")
 
+		self._uiconfig_localfiles_directories = builder.get_object("config_local_files_directories")
+		localfiles_entry = builder.get_object("config_local_files_newdirectory")
+		builder.get_object("config_local_files_add").connect("clicked", self._localfiles_add_cb, localfiles_entry)
+		localfiles_entry.connect("activate", self._localfiles_add_cb, localfiles_entry)
+		builder.get_object("config_local_files_remove").connect("clicked", self._localfiles_remove_cb, localfiles_entry)
+
 	def create_configure_dialog(self, *args):
 		self._init_ui(self.config_getiplayer_location, self._uiconfig_getiplayer_location, self._uiconfig_getiplayer_guess)
 		self._init_ui(self.config_flvstreamer_location, self._uiconfig_flvstreamer_location, self._uiconfig_flvstreamer_guess)
@@ -832,6 +839,11 @@ class Configuration(object):
 				break
 
 		self._uiconfig_preferred_bitrate.set_value(self.config_preferred_bitrate)
+
+		localfiles_model = self._uiconfig_localfiles_directories.get_model()
+		localfiles_model.clear()
+		for directory in self.config_localfiles_directories:
+			localfiles_model.append([directory])
 
 		self.config_dialog.set_default_response(gtk.RESPONSE_OK)
 		return self.config_dialog
@@ -879,6 +891,32 @@ class Configuration(object):
 	def _intelligent_guess_clicked_cb(self, location_box, button):
 		location_box.set_sensitive(not button.get_active())
 
+	def _localfiles_add_cb(self, button, localfiles_entry):
+		directory = localfiles_entry.get_text()
+		directory = os.path.expanduser(directory)
+		if not os.path.isabs(directory):
+			dlg = gtk.MessageDialog(
+				parent=self.config_dialog,
+				flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
+				buttons=gtk.BUTTONS_OK,
+				message_format="Only absolute paths can be used here. Invalid: %s" % (directory,)
+			)
+			dlg.run()
+			dlg.destroy()
+			return
+		localfiles_store = self._uiconfig_localfiles_directories.get_model()
+		if not directory:
+			return
+		if directory in [row[0] for row in localfiles_store]:
+			return
+		localfiles_store.append([directory])
+		localfiles_entry.set_text("")
+
+	def _localfiles_remove_cb(self, button, localfiles_entry):
+		localfiles_store, active_iter = self._uiconfig_localfiles_directories.get_selection().get_selected()
+		if active_iter:
+			localfiles_store.remove(active_iter)
+
 	def _config_confirmed_cb(self, button):
 		gip = self._uiconfig_getiplayer_location.get_filename()
 		if gip is None or self._uiconfig_getiplayer_guess.get_active():
@@ -918,6 +956,8 @@ class Configuration(object):
 		self.config_preferred_version = self._uiconfig_preferred_version.get_model().get_value(version_iter, 0)
 
 		self.config_preferred_bitrate = self._uiconfig_preferred_bitrate.get_value()
+
+		self.config_localfiles_directories = [row[0] for row in self._uiconfig_localfiles_directories.get_model()]
 
 		self.onconfigchanged()
 		self.config_dialog.hide()
@@ -992,3 +1032,11 @@ class Configuration(object):
 	@config_preferred_bitrate.setter
 	def config_preferred_bitrate(self, value):
 		self.gconf.set_int(GCONF_KEY + "/preferred_bitrate", int(value))
+
+	@property
+	def config_localfiles_directories(self):
+		return self.gconf.get_list(GCONF_KEY + "/localfiles_directories", gconf.VALUE_STRING)
+
+	@config_localfiles_directories.setter
+	def config_localfiles_directories(self, value):
+		self.gconf.set_list(GCONF_KEY + "/localfiles_directories", gconf.VALUE_STRING, value)

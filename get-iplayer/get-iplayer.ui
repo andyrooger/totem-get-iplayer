@@ -97,6 +97,12 @@ Copyright (C) 2013  Andy Gurden
 	</data>
 </object>
 
+<object class="GtkListStore" id="config_local_files_directories_store">
+	<columns>
+		<column type="gchararray"/>
+	</columns>
+</object>
+
 <object class="GtkAdjustment" id="config_preferred_bitrate_adjustment">
 	<property name="lower">100</property>
 	<property name="upper">2500</property>
@@ -122,6 +128,14 @@ Copyright (C) 2013  Andy Gurden
 
 <object class="GtkImage" id="gtk-clear">
 	<property name="stock">gtk-clear</property>
+</object>
+
+<object class="GtkImage" id="gtk-add">
+	<property name="stock">gtk-add</property>
+</object>
+
+<object class="GtkImage" id="gtk-remove">
+	<property name="stock">gtk-remove</property>
 </object>
 
 <object class="GtkVPaned" id="getiplayer_top_pane">
@@ -696,6 +710,60 @@ Copyright (C) 2013  Andy Gurden
 					<child type="tab">
 						<object class="GtkLabel" id="config_program_locations_tab">
 							<property name="label">Program Locations</property>
+						</object>
+					</child>
+					<child>
+						<object class="GtkVBox" id="config_local_files_contents">
+							<child>
+								<object class="GtkTreeView" id="config_local_files_directories">
+									<property name="model">config_local_files_directories_store</property>
+									<property name="headers-visible">True</property>
+									<child>
+										<object class="GtkTreeViewColumn" id="config_local_files_directory_column">
+											<property name="title">Directories to search for local files</property>
+											<child>
+												<object class="GtkCellRendererText" id="config_local_files_directory_renderer"/>
+												<attributes>
+													<attribute name="text">0</attribute>
+												</attributes>
+											</child>
+										</object>
+									</child>
+								</object>
+							</child>
+							<child>
+								<object class="GtkHBox" id="config_local_files_adder">
+									<child>
+										<object class="GtkEntry" id="config_local_files_newdirectory" />
+									</child>
+									<child>
+										<object class="GtkButton" id="config_local_files_add">
+											<property name="tooltip-text">Add directory</property>
+											<property name="image">gtk-add</property>
+										</object>
+										<packing>
+											<property name="expand">False</property>
+										</packing>
+									</child>
+									<child>
+										<object class="GtkButton" id="config_local_files_remove">
+											<property name="tooltip-text">Remove directory</property>
+											<property name="image">gtk-remove</property>
+										</object>
+										<packing>
+											<property name="expand">False</property>
+										</packing>
+									</child>
+								</object>
+								<packing>
+									<property name="expand">False</property>
+								</packing>
+							</child>
+						</object>
+					</child>
+					<child type="tab">
+						<object class="GtkLabel" id="config_local_files_tab">
+							<property name="label">Local Files</property>
 						</object>
 					</child>
 				</object>
