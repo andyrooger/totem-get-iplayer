@@ -586,9 +586,11 @@ class GetIplayerPlugin (totem.Plugin):
 				self._ui_version_list.set_active(0)
 
 			# Need to load image on another thread
-			load_image_in_background(self._ui_thumb, info["thumbnail"],
-				cancelcheck=lambda: self.showing_info != index,
-				transform=lambda pb: ensure_image_small(pb, 150, 100))
+			thumb = info.get("thumbnail")
+			if thumb:
+				load_image_in_background(self._ui_thumb, thumb,
+					cancelcheck=lambda: self.showing_info != index,
+					transform=lambda pb: ensure_image_small(pb, 150, 100))
 
 		def on_fail(errs):
 			self._ui_programme_info.hide_all()
