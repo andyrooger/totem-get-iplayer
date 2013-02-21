@@ -191,11 +191,15 @@ def parse_subtitles(input):
 
 def is_error_line(line):
 	'''Is this line a real error line?'''
-	if line == "WARNING: You haven't specified an output file (-o filename), using stdout":
-		return False # Ignore this warning from streaming programmes
-	elif line.startswith("ERROR:") or line.startswith("WARNING:"):
+	if line.startswith("WARNING:"):
+		if line == "WARNING: You haven't specified an output file (-o filename), using stdout":
+			return False # Ignore this warning from streaming programmes
+		if line == "WARNING: Please install the MP3::Info perl module to use 'localfiles' plugin":
+			return False # Don't really care if localfiles can't load
 		return True
-	elif "main input error" in line:
+	if line.startswith("ERROR:"):
+		return True
+	if "main input error" in line:
 		return True # VLC error (often seen when trying to play rtsp)
 	return False
 
