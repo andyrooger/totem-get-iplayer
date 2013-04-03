@@ -328,7 +328,7 @@ class PendingResult(object):
 class GetIPlayer(object):
 	def __init__(self, location, flvstreamerloc=None, ffmpegloc=None, localfiles_directories=None, output_location="~/.totem-get-iplayer"):
 		self.stock_vargs = [location]
-		self.stock_kwargs = {"nocopyright": ""}
+		self.stock_kwargs = {"nocopyright": "", "nopurge": ""}
 		if flvstreamerloc is not None:
 			self.stock_kwargs["flvstreamer"] = flvstreamerloc
 		if ffmpegloc is not None:
